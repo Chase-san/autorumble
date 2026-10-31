@@ -1,0 +1,2 @@
+# The participants of automelee6, one per line: package.Robot version,download url
+# See docs/rules.md for what a robot needs to enter.

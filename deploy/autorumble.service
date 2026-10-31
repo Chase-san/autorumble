@@ -1,0 +1,20 @@
+[Unit]
+Description=AutoRumble server
+After=network.target
+
+[Service]
+Type=simple
+User=autorumble
+Group=autorumble
+WorkingDirectory=/opt/autorumble
+ExecStart=/opt/autorumble/autorumble /opt/autorumble/autorumble.toml
+Restart=on-failure
+RestartSec=2
+NoNewPrivileges=true
+ProtectSystem=strict
+ReadWritePaths=/opt/autorumble/data
+ProtectHome=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

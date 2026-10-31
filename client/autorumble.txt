@@ -1,0 +1,48 @@
+# AutoRumble: the Robocode client's configuration for this rumble. The file name is the game name.
+#
+# Copy this file to the roborumble folder of your Robocode installation, and set USER and the
+# server address. The README has the command that starts the rumble. This needs a client with
+# HIDEENEMYNAMES support.
+
+USER=Put_Your_Name_Here
+EXCLUDE=
+
+DOWNLOAD=YES
+EXECUTE=YES
+UPLOAD=YES
+ITERATE=YES
+
+MELEE=NOT
+TEAMS=NOT
+
+# The format of this rumble. Do not change these, or the server will reject your results.
+FIELDL=800
+FIELDH=600
+ROUNDS=35
+HIDEENEMYNAMES=YES
+NUMBATTLES=50
+
+INPUT=./roborumble/temp/battles_autorumble.txt
+OUTPUT=./roborumble/files/results_autorumble.txt
+
+BOTSREP=./robots/
+TEMP=./roborumble/temp/
+
+PARTICIPANTSURL=http://localhost:8652/Participants?game=autorumble
+PARTICIPANTSFILE=./roborumble/files/particip_autorumble.txt
+STARTAG=pre
+UPDATEBOTSURL=http://localhost:8652/RemoveOldParticipant
+
+RUNONLY=SERVER
+BATTLESPERBOT=2000
+PRIORITYBATTLESFILE=./roborumble/temp/priority_autorumble.txt
+
+RESULTSURL=http://localhost:8652/UploadedResults
+RESULTSBATCHURL=http://localhost:8652/UploadedResultsBatch
+RESULTSBATCHSIZE=500
+BATTLESNUMFILE=./roborumble/temp/battlesnumber_autorumble.txt
+
+CODESIZEFILE=./roborumble/files/codesize_autorumble.txt
+
+RATINGS.URL=http://localhost:8652/RatingsFile
+RATINGS.GENERAL=./roborumble/temp/ratings_autorumble.txt

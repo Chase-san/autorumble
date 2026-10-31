@@ -1,0 +1,39 @@
+<p>Every score is worked out from the stored battle results, using the robots on the participant list.
+A melee battle counts as one result for each pair of robots in it.</p>
+
+<dl>
+<dt><b>APS</b> (Average Percentage Score)</dt>
+<dd>In one result, a robot's share of the two scores: <code>100 * score / (score + opponent's score)</code>.
+A pairing's APS is the average over its results, and a robot's APS is the average over its pairings.</dd>
+
+<dt><b>APS CI</b></dt>
+<dd>The half width of the 95% confidence interval on the APS. It uses each pairing's variance between
+battles, pulled towards a variance of 16 as if there were 3 extra battles, so that a pairing with few
+battles does not look certain.</dd>
+
+<dt><b>PWIN</b></dt>
+<dd>The percentage of pairings the robot wins, meaning an APS above 50. An exact 50 counts as half a win.</dd>
+
+<dt><b>Vote</b></dt>
+<dd>Each robot gives one vote to the opponent that scores best against it, split evenly on a tie.
+A robot's Vote is the percentage of its opponents that voted for it.</dd>
+
+<dt><b>NPP</b> (Normalised Percentage Pairing)</dt>
+<dd>A robot's APS against an opponent, scaled so that the lowest score any robot gets against that opponent
+is 0 and the highest is 100. <b>ANPP</b> is the average NPP over a robot's pairings.</dd>
+
+<dt><b>KNNPBI</b> (K-Nearest-Neighbours Problem Bot Index)</dt>
+<dd>A robot's APS against an opponent, minus the average APS of the robots near it in the rankings against
+that opponent. A negative number marks a problem bot: an opponent this robot does worse against than
+robots of about the same strength. The neighbours are about half the square root of the number of robots
+on each side.</dd>
+
+<dt><b>Min APS</b></dt>
+<dd>The robot's lowest APS in any one result of the pairing.</dd>
+
+<dt><b>Survival</b></dt>
+<dd>The percentage of rounds the robot finished first, averaged over its pairings.</dd>
+</dl>
+
+<p>These definitions follow <a href="https://robowiki.net/wiki/LiteRumble">LiteRumble</a>. Unlike LiteRumble,
+scores here have no separate batch step and are all recomputed together every few seconds.</p>
