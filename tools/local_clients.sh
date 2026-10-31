@@ -23,7 +23,7 @@ UPLOADER="${UPLOADER:-$(hostname -s)}"
 
 # Rumble, clients, battles per iteration. Keep the total below the number of CPU cores.
 RUMBLES="autorumble 4 20
-openrumble 24 20
+openrumble 20 20
 automelee6 4 5
 openmelee6 8 5"
 
