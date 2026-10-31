@@ -162,7 +162,7 @@ pub fn check_upload(
     }
     if upload.hide_names != rumble.hide_names {
         let setting = if rumble.hide_names { "YES" } else { "NOT" };
-        return Err(format!("this rumble needs HIDEENEMYNAMES={setting}"));
+        return Err(format!("this rumble needs HIDENAMES={setting}"));
     }
     if upload.time_ms < now_ms - max_age_ms {
         return Err("the battle is too old".to_string());

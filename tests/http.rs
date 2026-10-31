@@ -178,7 +178,7 @@ async fn rejections_tell_the_stock_client_not_to_resend() {
     let names_shown =
         result("a.One 1.0", 300, "b.Two 2.0", 100, time).replace("&hidenames=YES", "");
     let reply = server.upload(names_shown).await;
-    assert!(reply.contains("HIDEENEMYNAMES=YES"), "{reply}");
+    assert!(reply.contains("HIDENAMES=YES"), "{reply}");
 
     let reply = server
         .upload(result("a.One 1.0", 1, "b.Two 2.0", 1, time).replace("game=duel", "game=typo"))

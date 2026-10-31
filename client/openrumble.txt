@@ -2,7 +2,7 @@
 #
 # Copy this file to the roborumble folder of your Robocode installation, and set USER and the
 # server address. The README has the command that starts the rumble. This needs a client with
-# HIDEENEMYNAMES support.
+# HIDENAMES support.
 
 USER=Put_Your_Name_Here
 EXCLUDE=
@@ -19,7 +19,7 @@ TEAMS=NOT
 FIELDL=800
 FIELDH=600
 ROUNDS=35
-HIDEENEMYNAMES=YES
+HIDENAMES=YES
 NUMBATTLES=50
 
 INPUT=./roborumble/temp/battles_openrumble.txt

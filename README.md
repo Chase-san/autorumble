@@ -103,7 +103,7 @@ Set `USER` and replace `localhost:8652` with the server's address. The launcher 
 sed 's#roborumble/roborumble.txt#roborumble/autorumble.txt#' roborumble.sh > autorumble.sh
 ```
 
-The rumbles need a client that supports `HIDEENEMYNAMES`, which released versions of Robocode do not have
+The rumbles need a client that supports `HIDENAMES`, which released versions of Robocode do not have
 yet. `RESULTSBATCHURL` is optional: without it, the client uploads one result at a time.
 
 ## Tests

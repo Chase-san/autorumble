@@ -18,7 +18,7 @@ participants_seconds = 300
 # Battles older than this are rejected.
 max_battle_age_hours = 24
 
-# The Robocode versions allowed to upload. The client must support HIDEENEMYNAMES.
+# The Robocode versions allowed to upload. The client must support HIDENAMES.
 allowed_clients = ["1.11.2", "1.11.3"]
 
 # One [[rumble]] per competition. The name must match the client's configuration file, so
