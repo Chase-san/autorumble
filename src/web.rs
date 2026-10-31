@@ -39,6 +39,7 @@ pub fn router(engine: Arc<Engine>) -> Router {
         .route("/UploadedResultsBatch", post(uploaded_results_batch))
         .route("/RemoveOldParticipant", get(remove_old_participant).post(remove_old_participant))
         .route("/logos/{file}", get(logo))
+        .route("/robots/{file}", get(robot_jar))
         .route("/style.css", get(style))
         .route("/robots.txt", get(|| async { text(pages::ROBOTS_TXT.to_string()) }))
         .layer(DefaultBodyLimit::max(MAX_BODY_BYTES))
@@ -210,6 +211,22 @@ async fn logo(
         (header::CACHE_CONTROL, "public, max-age=86400"),
     ];
     Ok((headers, bytes.as_ref().clone()).into_response())
+}
+
+/// A robot's jar, for robots that are not hosted anywhere else. Only plain file names ending in
+/// `.jar` are accepted, so a request cannot reach anything outside the directory.
+async fn robot_jar(
+    State(engine): State<Arc<Engine>>,
+    Path(file): Path<String>,
+) -> Result<Response, NotFound> {
+    const MISSING: NotFound = NotFound("There is no such robot jar.");
+    let plain = file.chars().all(|c| c.is_ascii_alphanumeric() || "_.-".contains(c));
+    if !plain || file.starts_with('.') || !file.ends_with(".jar") {
+        return Err(MISSING);
+    }
+    let directory = engine.robots_directory().ok_or(MISSING)?;
+    let bytes = tokio::fs::read(directory.join(&file)).await.map_err(|_| MISSING)?;
+    Ok(([(header::CONTENT_TYPE, "application/java-archive")], bytes).into_response())
 }
 
 async fn style() -> Response {

@@ -1,34 +1,56 @@
 # Written by tools/license_census.py. See docs/rules.md and participants/review/.
 # license=zlib source=jar from=wiki
 ags.Glacier 0.3.2,http://robocode-archive.strangeautomata.com/robots/ags.Glacier_0.3.2.jar
+# license=RWPCL source=jar from=reviewer: the wiki says it is probably RWPCL, like RougeDC
+ags.polished.PolishedRuby 1,http://robocode-archive.strangeautomata.com/robots/ags.polished.PolishedRuby_1.jar
 # license=RWPCL source=jar from=wiki
 ags.rougedc.RougeDC willow,http://robocode-archive.strangeautomata.com/robots/ags.rougedc.RougeDC_willow.jar
+# license=GPL source=jar from=jar
+alex.Diabolo5 1.1,http://robocode-archive.strangeautomata.com/robots/alex.Diabolo5_1.1.jar
 # license=RWPCL source=jar from=jar
 apv.test.Virus 0.6.1,http://robocode-archive.strangeautomata.com/robots/apv.test.Virus_0.6.1.jar
 # license=BSD source=jar from=wiki
 aw.Gilgalad 1.99.5c,http://robocode-archive.strangeautomata.com/robots/aw.Gilgalad_1.99.5c.jar
+# license=RWPCL source=jar from=reviewer: contains RWPCL code, which requires the whole robot to be under the RWPCL
+axeBots.Okami 1.04,http://robocode-archive.strangeautomata.com/robots/axeBots.Okami_1.04.jar
 # license=RWPCL source=jar from=wiki
 axeBots.SilverSurfer 2.53.33fix,http://robocode-archive.strangeautomata.com/robots/axeBots.SilverSurfer_2.53.33fix.jar
 # license=RWPCL source=jar from=jar
 ayk.WallHugger 1.0,http://robocode-archive.strangeautomata.com/robots/ayk.WallHugger_1.0.jar
 # license=RWPCL source=jar from=wiki
 baal.nano.N 1.42,http://robocode-archive.strangeautomata.com/robots/baal.nano.N_1.42.jar
+# license=permission source=jar from=reviewer: the wiki says sure, it's in the jar and not under a license
+bayen.nano.Squirrel 0.2,http://robocode-archive.strangeautomata.com/robots/bayen.nano.Squirrel_0.2.jar
+# license=permission source=jar from=reviewer: the wiki says sure, it's in the jar and not under a license
+bayen.nut.Squirrel 1.621,http://robocode-archive.strangeautomata.com/robots/bayen.nut.Squirrel_1.621.jar
 # license=RWLPCL source=jar from=wiki
 chase.pm.Pytko 1.0,http://robocode-archive.strangeautomata.com/robots/chase.pm.Pytko_1.0.jar
 # license=public-domain source=jar from=wiki
 cjm.chalk.Chalk 2.6.Be,http://scatterbright.com/robots/cjm.chalk.Chalk_2.6.Be.jar
 # license=public-domain source=jar from=wiki
 cjm.Charo 1.1,http://scatterbright.com/robots/cjm.Charo_1.1.jar
+# license=CC-BY-SA source=jar from=wiki
+cjm.Che 1.2,http://robocode-archive.strangeautomata.com/robots/cjm.Che_1.2.jar
 # license=zlib source=jar from=wiki
 cs.Nene 1.0.5,http://robocode-archive.strangeautomata.com/robots/cs.Nene_1.0.5.jar
 # license=zlib source=jar from=wiki
 cs.s2.Seraphim 2.3.1,http://robocode-archive.strangeautomata.com/robots/cs.s2.Seraphim_2.3.1.jar
+# license=permission source=jar from=reviewer: the wiki says yes, you can
+cx.mini.Cigaret 1.31,http://robocode-archive.strangeautomata.com/robots/cx.mini.Cigaret_1.31.jar
 # license=RWPCL source=jar from=jar
 dft.Cyanide 1.90,http://robocode-archive.strangeautomata.com/robots/dft.Cyanide_1.90.jar
 # license=RWPCL source=jar from=jar
 dft.Krazy 1.5,http://robocode-archive.strangeautomata.com/robots/dft.Krazy_1.5.jar
+# license=permission source=jar from=reviewer: the wiki says open source and comes with no string attached
+eem.awful v1.2,https://evmik.com/~evmik/robocode/eem.awful_v1.2.jar
+# license=permission source=jar from=reviewer: the wiki says open source and comes with no string attached
+eem.EvBotNG v12.8,https://evmik.com/~evmik/robocode/eem.EvBotNG_v12.8.jar
+# license=permission source=jar from=reviewer: the wiki says yes, I don't care what you do, just don't make a total copy
+EH.Fusion 0.32,http://robocode-archive.strangeautomata.com/robots/EH.Fusion_0.32.jar
 # license=RWPCL source=jar from=wiki
 EH.kms.LightningStorm 0.11B,http://robocode-archive.strangeautomata.com/robots/EH.kms.LightningStorm_0.11B.jar
+# license=permission source=jar from=reviewer: the wiki says yes, I don't care what you do, just don't make a total copy
+EH.nano.NightBird M,http://robocode-archive.strangeautomata.com/robots/EH.nano.NightBird_M.jar
 # license=RWPCL source=jar from=wiki
 ers.nano.gokdeniz.Gokdeniz 1.5b,https://github.com/ersamson/robocode/raw/main/ers.nano.gokdeniz.Gokdeniz_1.5b.jar
 # license=RWPCL source=jar from=wiki
@@ -43,6 +65,8 @@ ers.nano.nekolh.Nekolh 1.4d,https://github.com/ersamson/robocode/raw/main/ers.na
 ers.nano.sunderer.Sunderer 1.23a,https://github.com/ersamson/robocode/raw/main/ers.nano.sunderer.Sunderer_1.23a.jar
 # license=RWPCL source=jar from=wiki
 fromHell.CHCl3 1.4.2,https://www.dropbox.com/s/9ipmp881g7e9fdz/fromHell.CHCl3_1.4.2.jar?dl=1
+# license=RWPCL source=jar from=reviewer: own source complete, no source for the public RaikoGun
+gh.GresSuffurd 0.4.13,https://drive.google.com/uc?export=download&id=1_479CwVjgz53S6Msv_dBfSCp0ZayNZqb
 # license=RWPCL source=jar from=wiki
 gh.GrubbmGrb 1.2.4,http://robocode-archive.strangeautomata.com/robots/gh.GrubbmGrb_1.2.4.jar
 # license=RWPCL source=jar from=wiki
@@ -69,6 +93,14 @@ jam.RaikoMX 0.32,http://robocode-archive.strangeautomata.com/robots/jam.RaikoMX_
 jekl.DarkHallow .90.9,http://robocode-archive.strangeautomata.com/robots/jekl.DarkHallow_.90.9.jar
 # license=RWPCL source=jar from=wiki
 jk.sheldor.nano.Yatagan 1.2.3,https://www.dropbox.com/s/wdcugfsjn0g2cmp/jk.sheldor.nano.Yatagan_1.2.3.jar?dl=1
+# license=permission source=jar from=reviewer: the source says feel free to use this
+kawigi.f.FhqwhgadsMicro 1.0,http://robocode-archive.strangeautomata.com/robots/kawigi.f.FhqwhgadsMicro_1.0.jar
+# license=permission source=jar from=reviewer: the wiki says yes, and its line about beating his robots is a joke
+kawigi.mini.Fhqwhgads 1.1,http://robocode-archive.strangeautomata.com/robots/kawigi.mini.Fhqwhgads_1.1.jar
+# license=permission source=jar from=reviewer: the wiki says sure
+kawigi.sbf.FloodMini 1.4,http://robocode-archive.strangeautomata.com/robots/kawigi.sbf.FloodMini_1.4.jar
+# license=RWPCL source=jar from=reviewer: the wiki page is Kev's BeepBoop
+kc.mega.BeepBoop 2.0,https://drive.google.com/uc?export=download&id=1kVKG22Vz5ayvTs9pdsLg8-4bicL23BiQ
 # license=Attribution source=jar from=wiki
 kc.micro.rammer.MaxRisk 0.6,http://robocode-archive.strangeautomata.com/robots/kc.micro.rammer.MaxRisk_0.6.jar
 # license=RWPCL source=jar from=wiki
@@ -87,6 +119,12 @@ kjc.etc.Dharok 1.0,http://robocode-archive.strangeautomata.com/robots/kjc.etc.Dh
 kms.Royal 0.15M,http://robocode-archive.strangeautomata.com/robots/kms.Royal_0.15M.jar
 # license=RWPCL source=jar from=wiki
 lancel.Lynx 1.09,http://robocode-archive.strangeautomata.com/robots/lancel.Lynx_1.09.jar
+# license=permission source=jar from=reviewer: the wiki says yes
+mn.nano.perceptual.Impact 1.3.0,https://www.dropbox.com/s/njuuaycr3qswlgu/mn.nano.perceptual.Impact_1.3.0.jar?dl=1
+# license=permission source=jar from=reviewer: the source says feel free to use parts of it, if your robot is open source too
+myl.micro.Avipes 1.00,http://robocode-archive.strangeautomata.com/robots/myl.micro.Avipes_1.00.jar
+# license=permission source=jar from=reviewer: the source says feel free to use parts of it, if your robot is open source too
+myl.nano.Kakuru 1.20,http://robocode-archive.strangeautomata.com/robots/myl.nano.Kakuru_1.20.jar
 # license=zlib source=jar from=wiki
 nat.BlackHole 2.0gamma,http://robocode-archive.strangeautomata.com/robots/nat.BlackHole_2.0gamma.jar
 # license=RWLPCL source=jar from=wiki
@@ -117,6 +155,8 @@ pez.nano.LittleEvilBrother 0.1,http://robocode-archive.strangeautomata.com/robot
 pez.rumble.Ali 0.4.9,http://robocode-archive.strangeautomata.com/robots/pez.rumble.Ali_0.4.9.jar
 # license=RWPCL source=jar from=wiki
 pez.rumble.CassiusClay 2rho.02no,http://robocode-archive.strangeautomata.com/robots/pez.rumble.CassiusClay_2rho.02no.jar
+# license=GPL source=jar from=jar
+qohnil.blot.BlotBot 3.61,http://robocode-archive.strangeautomata.com/robots/qohnil.blot.BlotBot_3.61.jar
 # license=RWPCL source=jar from=jar
 rc.yoda.Yoda 1.0.6c.fix,http://robocode-archive.strangeautomata.com/robots/rc.yoda.Yoda_1.0.6c.fix.jar
 # license=RWLPCL source=jar from=wiki
@@ -129,6 +169,30 @@ robar.nano.Prestige 1.0,http://robocode-archive.strangeautomata.com/robots/robar
 robar.nano.Pugio 1.49,http://robocode-archive.strangeautomata.com/robots/robar.nano.Pugio_1.49.jar
 # license=RWPCL source=jar from=wiki
 ry.LightningBug 1.0,http://robocode-archive.strangeautomata.com/robots/ry.LightningBug_1.0.jar
+# license=EPL source=jar from=wiki
+sample.Corners 1.0,http://robocode-archive.strangeautomata.com/robots/sample.Corners_1.0.jar
+# license=EPL source=jar from=wiki
+sample.Crazy 1.0,http://robocode-archive.strangeautomata.com/robots/sample.Crazy_1.0.jar
+# license=EPL source=jar from=wiki
+sample.Fire 1.0,http://robocode-archive.strangeautomata.com/robots/sample.Fire_1.0.jar
+# license=EPL source=jar from=jar
+sample.MyFirstJuniorRobot 1.0,http://robocode-archive.strangeautomata.com//robots/sample.MyFirstJuniorRobot_1.0.jar
+# license=EPL source=jar from=wiki
+sample.MyFirstRobot 1.0,http://robocode-archive.strangeautomata.com/robots/sample.MyFirstRobot_1.0.jar
+# license=EPL source=jar from=wiki
+sample.SittingDuck 1.0,http://robocode-archive.strangeautomata.com/robots/sample.SittingDuck_1.0.jar
+# license=EPL source=jar from=wiki
+sample.SpinBot 1.0,http://robocode-archive.strangeautomata.com/robots/sample.SpinBot_1.0.jar
+# license=EPL source=jar from=wiki
+sample.Target 1.0,http://robocode-archive.strangeautomata.com/robots/sample.Target_1.0.jar
+# license=EPL source=jar from=wiki
+sample.Tracker 1.0,http://robocode-archive.strangeautomata.com/robots/sample.Tracker_1.0.jar
+# license=EPL source=jar from=wiki
+sample.TrackFire 1.0,http://robocode-archive.strangeautomata.com/robots/sample.TrackFire_1.0.jar
+# license=EPL source=jar from=wiki
+sample.VelociRobot 1.0,http://robocode-archive.strangeautomata.com//robots/sample.VelociRobot_1.0.jar
+# license=EPL source=jar from=wiki
+sample.Walls 1.0,http://robocode-archive.strangeautomata.com/robots/sample.Walls_1.0.jar
 # license=RWPCL source=jar from=wiki
 sheldor.micro.Continuation 1.1,https://github.com/sheldor-robocode/jar-files/raw/refs/heads/main/sheldor.micro.Continuation_1.1.jar
 # license=RWPCL source=jar from=wiki
@@ -161,10 +225,20 @@ slugzilla.Basilisk 3.9,https://drive.google.com/uc?export=download&id=1uwH6O_P5Q
 slugzilla.Basilite 0.13,https://drive.google.com/uc?export=download&id=10AqhVrf0Jd_UylPbMWtMnSMUag07rZ4G
 # license=RWPCL source=jar from=wiki
 slugzilla.ButtHead 2.0,https://drive.google.com/uc?export=download&id=11rqwdSdyYHUhpNFY4xsqnRhtFVKvJByw
+# license=permission source=jar from=reviewer: the source says use the code as you see fit
+slugzilla.OrbitGF 1.0,https://drive.google.com/uc?export=download&id=1Au8tzDwxA1ADtfhVX5iRRf2gSHUNZeVA
+# license=permission source=jar from=reviewer: the source says use the code as you see fit
+slugzilla.OscillateGF 1.0,https://drive.google.com/uc?export=download&id=1pfSQW1Lb_jZEJDzoU-Iu9xu8m5Ef1iUX
 # license=RWPCL source=jar from=wiki
 slugzilla.Parallax 0.1,https://drive.google.com/uc?export=download&id=1lcthCi5qKOpEmPIzlKD4Xpd1Z7pzt2hT
+# license=permission source=jar from=reviewer: the source says use the code as you see fit
+slugzilla.RandomGF 1.0,https://drive.google.com/uc?export=download&id=1rlJVoo4o22yqHDKcCNTS8ZoGpcm-G-8S
+# license=permission source=jar from=reviewer: the source says use the code as you see fit
+slugzilla.SNGGF 1.0,https://drive.google.com/uc?export=download&id=1rQvdWkGJahXaXl6qPC7nsQJd92AJZ7kK
 # license=RWPCL source=jar from=wiki
 slugzilla.SquirmyToad 3.9,https://drive.google.com/uc?export=download&id=1AB9S47yA18TQO0CSghUr_ophL1ckuzSU
+# license=GPL source=jar from=wiki
+stefw.Tigger 0.0.23,http://robocode-archive.strangeautomata.com/robots/stefw.Tigger_0.0.23.jar
 # license=public-domain source=jar from=wiki
 supersample.SuperBoxBot 1.0,http://robocode-archive.strangeautomata.com/robots/supersample.SuperBoxBot_1.0.jar
 # license=public-domain source=jar from=wiki
@@ -187,6 +261,12 @@ supersample.SuperWalls 1.0,http://robocode-archive.strangeautomata.com//robots/s
 tide.pear.Pear 0.62.1,http://robocode-archive.strangeautomata.com/robots/tide.pear.Pear_0.62.1.jar
 # license=public-domain source=jar from=wiki
 tjk.AFlatNatural 1.0,http://robocode-archive.strangeautomata.com/robots/tjk.AFlatNatural_1.0.jar
+# license=permission source=jar from=reviewer: the source says feel free to use this code, and only mentions the GPL as an example
+tobe.Relativity 3.9,http://robocode-archive.strangeautomata.com/robots/tobe.Relativity_3.9.jar
+# license=permission source=jar from=reviewer: the wiki says sure, but hey its really messy
+trab.Crusader 0.1.7,http://robocode-archive.strangeautomata.com/robots/trab.Crusader_0.1.7.jar
+# license=EPL source=jar from=jar
+tvv.micro.Antares 1.1.1,http://robocode-archive.strangeautomata.com/robots/tvv.micro.Antares_1.1.1.jar
 # license=public-domain source=jar from=wiki
 tzu.TheArtOfWar 1.2,http://robocode-archive.strangeautomata.com/robots/tzu.TheArtOfWar_1.2.jar
 # license=zlib source=jar from=wiki
@@ -195,6 +275,8 @@ ur4n0.UR4NO 1.0,https://github.com/UR4N0-235/UR4NO/raw/main/ur4n0.UR4NO_1.0.jar
 vic.Locke 0.7.5.5,http://robocode-archive.strangeautomata.com/robots/vic.Locke_0.7.5.5.jar
 # license=zlib source=jar from=wiki
 voidious.Diamond 1.8.22,http://robocode-archive.strangeautomata.com/robots/voidious.Diamond_1.8.22.jar
+# license=RWPCL source=jar from=reviewer: own source complete, no source for the public RaikoGun
+voidious.Dookious 1.573c,http://robocode-archive.strangeautomata.com/robots/voidious.Dookious_1.573c.jar
 # license=RWPCL source=jar from=wiki
 voidious.micro.Jen 1.11,http://robocode-archive.strangeautomata.com/robots/voidious.micro.Jen_1.11.jar
 # license=RWPCL source=jar from=wiki

@@ -12,8 +12,8 @@ gets a verdict with the evidence for it, because a reviewer has to be able to ch
     no-source          no source in the jar
     partial-source     source for only some of the robot's own classes
     no-license         source in the jar, but no license anywhere
-    disallowed         a license that is not allowed, such as KPL, NPL or NRPL
-    decide             a license with no ruling yet, such as GPL
+    disallowed         a license that is not allowed, such as KPL, NPL or CC-BY-ND
+    decide             a license with no ruling yet
     review-*           the evidence needs a person: a conflict, a weak or informal license,
                        embedded code under another license, or a library without source
     no-jar             the jar was not available
@@ -32,7 +32,8 @@ import re
 import sys
 import zipfile
 
-# Groups of licenses. An allowed license is permissive, or at least has no unreasonable conditions.
+# Groups of licenses. Allowed licenses are permissive, or share-alike with no condition on how a robot
+# can compete. Not allowed: conditions on competing, and terms that are not open to reuse at all.
 ALLOWED, DISALLOWED, DECIDE = "allowed", "disallowed", "decide"
 
 # (name, group, pattern). Patterns look for wording that states a license, not for bare words, so
@@ -41,6 +42,7 @@ I = re.IGNORECASE
 LICENSES = [
     ("RWLPCL", ALLOWED, re.compile(r"rwlpcl|robo ?wiki limited public", I)),
     ("RWPCL", ALLOWED, re.compile(r"rwpcl|robo ?wiki public code|robocode wiki public code", I)),
+    ("MIT-0", ALLOWED, re.compile(r"\bmit-0\b|mit no attribution", I)),
     ("MIT", ALLOWED, re.compile(r"\bmit[- ]licen[cs]|licen[cs]ed under (the )?mit\b|mit licensed"
                                 r"|permission is hereby granted, free of charge|opensource\.org/licenses/mit", I)),
     ("BSD", ALLOWED, re.compile(r"\bbsd[- ]*(2|3|two|three)?[- ]*(clause)?[- ]*licen[cs]|bsd licensed"
@@ -53,16 +55,16 @@ LICENSES = [
     ("Unlicense", ALLOWED, re.compile(r"\bthe unlicense\b|unlicense\.org", I)),
     ("Apache", ALLOWED, re.compile(r"apache licen[cs]e|apache-2\.0|apache 2\.0", I)),
     ("ISC", ALLOWED, re.compile(r"\bisc licen[cs]e", I)),
-    ("CC-BY-NC", DECIDE, re.compile(r"cc[- ]by[- ]nc|attribution[- ]?non-?commercial|licenses/by-nc", I)),
-    ("CC-BY-SA", DECIDE, re.compile(r"cc[- ]by[- ]sa|attribution[- ]?share ?alike|licenses/by-sa", I)),
-    ("CC-BY-ND", DECIDE, re.compile(r"cc[- ]by[- ]nd|attribution[- ]?no-?deriv|licenses/by-nd", I)),
+    ("CC-BY-NC", DISALLOWED, re.compile(r"cc[- ]by[- ]nc|attribution[- ]?non-?commercial|licenses/by-nc", I)),
+    ("CC-BY-SA", ALLOWED, re.compile(r"cc[- ]by[- ]sa|attribution[- ]?share ?alike|licenses/by-sa", I)),
+    ("CC-BY-ND", DISALLOWED, re.compile(r"cc[- ]by[- ]nd|attribution[- ]?no-?deriv|licenses/by-nd", I)),
     ("CC-BY", ALLOWED, re.compile(r"cc[- ]by \d|creative commons attribution \d|licenses/by/\d", I)),
-    ("LGPL", DECIDE, re.compile(r"\blgpl\b|gnu lesser general|gnu library general", I)),
-    ("AGPL", DECIDE, re.compile(r"\bagpl\b|gnu affero", I)),
-    ("GPL", DECIDE, re.compile(r"\bgpl\b|\bgplv\d|gnu general public licen|gnu public licen", I)),
-    ("EPL", DECIDE, re.compile(r"eclipse public licen", I)),
-    ("CPL", DECIDE, re.compile(r"common public licen", I)),
-    ("MPL", DECIDE, re.compile(r"mozilla public licen", I)),
+    ("LGPL", ALLOWED, re.compile(r"\bLGPL\b|(?i:gnu lesser general|gnu library general)")),
+    ("AGPL", ALLOWED, re.compile(r"\bAGPL\b|(?i:gnu affero)")),
+    ("GPL", ALLOWED, re.compile(r"\bGPL\b|\bGPLv\d|(?i:gnu general public licen|gnu public licen)")),
+    ("EPL", ALLOWED, re.compile(r"eclipse public licen", I)),
+    ("CPL", ALLOWED, re.compile(r"common public licen", I)),
+    ("MPL", ALLOWED, re.compile(r"mozilla public licen", I)),
     # Case matters here, so that a variable called npl does not count.
     ("KPL", DISALLOWED, re.compile(r"\bKPL\b|[Kk]awigi ?[Pp]ublic ?[Ll]icen[cs]e")),
     ("NPL", DISALLOWED, re.compile(r"\bNPL\b|\bNPRL\b|\bNRPL\b|\bNat Public( Robot)? Licen[cs]e")),
@@ -111,9 +113,11 @@ def find_licenses(text):
         match = pattern.search(text)
         if match:
             found[name] = evidence_line(text, match.start())
-    # The LGPL text talks about the GPL, and this wording does not mean both apply.
+    # The LGPL text talks about the GPL, and MIT-0 is worded like MIT, without meaning both apply.
     if "LGPL" in found:
         found.pop("GPL", None)
+    if "MIT-0" in found:
+        found.pop("MIT", None)
     return found
 
 
@@ -237,7 +241,8 @@ def strip_markup(value):
 SHORT_NAMES = [
     ("RWLPCL", re.compile(r"rwlpcl", I)),
     ("RWPCL", re.compile(r"rwpcl|robo ?wiki public", I)),
-    ("MIT", re.compile(r"\bmit\b", I)),
+    ("MIT-0", re.compile(r"\bmit-0\b", I)),
+    ("MIT", re.compile(r"\bmit\b(?!-0)", I)),
     ("BSD", re.compile(r"\b(free)?bsd\b", I)),
     ("zlib", re.compile(r"\bzlib\b", I)),
     # Some wiki pages give "Attribution" as the license: free to use, with credit given.

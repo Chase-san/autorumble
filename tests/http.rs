@@ -34,6 +34,7 @@ impl TestServer {
         fs::write(directory.path().join("duel.txt"), LIST).unwrap();
         fs::write(directory.path().join("melee.txt"), LIST).unwrap();
         fs::create_dir(directory.path().join("logos")).unwrap();
+        fs::create_dir(directory.path().join("robots")).unwrap();
         let app = serve(directory.path().to_path_buf());
         TestServer { directory, app }
     }
@@ -81,6 +82,7 @@ fn serve(directory: PathBuf) -> Router {
         listen = "127.0.0.1:0"
         database = "{database}"
         logos = "{logos}"
+        robots = "{robots}"
         standings_seconds = 0
         participants_seconds = 0
         allowed_clients = ["1.11.2"]
@@ -103,6 +105,7 @@ fn serve(directory: PathBuf) -> Router {
         "#,
         database = path("test.db"),
         logos = path("logos"),
+        robots = path("robots"),
         duel = path("duel.txt"),
         melee = path("melee.txt"),
     ))
@@ -392,4 +395,30 @@ async fn logos_are_served_when_valid() {
     let rankings = server.rankings("duel").await;
     assert_eq!(rankings[0]["logo"], "/logos/a.png");
     assert_eq!(rankings[1]["logo"], Value::Null);
+}
+
+#[tokio::test]
+async fn robot_jars_are_served_and_nothing_else() {
+    let server = TestServer::start();
+    let robots = server.directory.path().join("robots");
+    fs::write(robots.join("a.One_1.0.jar"), b"jar bytes").unwrap();
+    fs::write(robots.join("notes.txt"), b"not a jar").unwrap();
+    fs::write(server.directory.path().join("secret.jar"), b"outside").unwrap();
+
+    let request = Request::get("/robots/a.One_1.0.jar").body(Body::empty()).unwrap();
+    let response = server.app.clone().oneshot(request).await.unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+    assert_eq!(response.headers()[header::CONTENT_TYPE], "application/java-archive");
+    let bytes = response.into_body().collect().await.unwrap().to_bytes();
+    assert_eq!(&bytes[..], b"jar bytes");
+
+    for path in [
+        "/robots/missing.jar",
+        "/robots/notes.txt",
+        "/robots/..%2Fsecret.jar",
+        "/robots/.hidden.jar",
+    ] {
+        let (status, _) = server.get(path).await;
+        assert_eq!(status, StatusCode::NOT_FOUND, "{path}");
+    }
 }

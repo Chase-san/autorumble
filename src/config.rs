@@ -19,6 +19,9 @@ pub struct Config {
     pub database: PathBuf,
     /// The directory of author logos.
     pub logos: PathBuf,
+    /// A directory of robot jars to serve, for robots that are not hosted anywhere else.
+    #[serde(default)]
+    pub robots: Option<PathBuf>,
     /// How often to recompute the standings of a rumble with new battles.
     #[serde(default = "default_standings_seconds")]
     pub standings_seconds: u64,

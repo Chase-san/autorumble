@@ -10,7 +10,7 @@
 //! sent after that, so a client that sees `OK` knows the result is safe.
 
 use std::collections::{BTreeMap, HashMap};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::sync::mpsc::{Receiver, RecvTimeoutError, SyncSender, sync_channel};
 use std::sync::{Arc, RwLock};
 use std::time::{Duration, Instant};
@@ -90,11 +90,13 @@ struct Job {
 pub struct Engine {
     jobs: SyncSender<Job>,
     snapshot: Arc<RwLock<Arc<Snapshot>>>,
+    robots: Option<PathBuf>,
 }
 
 impl Engine {
     /// Opens the database, rebuilds the scores from it and starts the thread.
     pub fn start(config: Config) -> Result<Engine, String> {
+        let robots = config.robots.clone();
         let worker = Worker::new(config)?;
         let snapshot = worker.snapshot.clone();
         let (jobs, queue) = sync_channel(QUEUE_LENGTH);
@@ -102,7 +104,7 @@ impl Engine {
             .name("engine".to_string())
             .spawn(move || run_or_exit(worker, queue))
             .map_err(|e| format!("cannot start the engine thread: {e}"))?;
-        Ok(Engine { jobs, snapshot })
+        Ok(Engine { jobs, snapshot, robots })
     }
 
     /// Stores results, one per line, and waits until they are safe.
@@ -117,6 +119,11 @@ impl Engine {
             return busy();
         }
         answer.await.unwrap_or_else(|_| busy())
+    }
+
+    /// The directory of robot jars to serve, if there is one.
+    pub fn robots_directory(&self) -> Option<&Path> {
+        self.robots.as_deref()
     }
 
     /// The latest published snapshot.

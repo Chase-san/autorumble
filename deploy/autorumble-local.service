@@ -1,0 +1,19 @@
+# Runs the server under your own account, on the port in autorumble.toml. To install it:
+#
+#   cp deploy/autorumble-local.service ~/.config/systemd/user/autorumble.service
+#   systemctl --user daemon-reload
+#   systemctl --user enable --now autorumble
+#
+# It starts at boot if lingering is on for your account (loginctl enable-linger).
+# Its log is at: journalctl --user -u autorumble
+[Unit]
+Description=AutoRumble server
+
+[Service]
+WorkingDirectory=%h/projects/autorumble
+ExecStart=%h/projects/autorumble/target/release/autorumble autorumble.toml
+Restart=on-failure
+RestartSec=2
+
+[Install]
+WantedBy=default.target

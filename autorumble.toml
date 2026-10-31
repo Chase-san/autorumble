@@ -1,13 +1,18 @@
 # The AutoRumble server configuration. Relative paths are relative to where the server is started.
 
-# Where to listen. Put nginx in front of this for TLS and rate limits, see deploy/.
-listen = "127.0.0.1:8652"
+# Where to listen. 0.0.0.0 makes it reachable from other machines on the network. When it is public,
+# use 127.0.0.1 and put nginx in front of it for TLS and rate limits, see deploy/.
+listen = "0.0.0.0:8652"
 
 # The SQLite file holding every battle. Back this file up.
 database = "data/autorumble.db"
 
 # The directory of author logos, see README.md.
 logos = "logos"
+
+# A directory of robot jars to serve at /robots/, for robots that are not hosted anywhere else. Leave it
+# out to serve none. A participant list can then point at http://this-server:8652/robots/name_1.0.jar.
+robots = "robots"
 
 # How often to recompute the standings of a rumble with new battles.
 standings_seconds = 10
@@ -19,7 +24,7 @@ participants_seconds = 300
 max_battle_age_hours = 24
 
 # The Robocode versions allowed to upload. The client must support HIDENAMES.
-allowed_clients = ["1.11.2", "1.11.3"]
+allowed_clients = ["1.11.1", "1.11.2", "1.11.3"]
 
 # One [[rumble]] per competition. The name must match the client's configuration file, so
 # client/autorumble.txt uploads to the rumble named autorumble.

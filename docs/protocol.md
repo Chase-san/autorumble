@@ -84,3 +84,4 @@ but here the server's own list decides, so a client with an old list cannot reti
 | `GET /RumbleStats` | Uploads by rumble and by uploader |
 | `GET /ScoreExplanation` | What each score means |
 | `GET /logos/PACKAGE.png` | An author's logo |
+| `GET /robots/NAME_VERSION.jar` | A robot's jar, for robots not hosted anywhere else |

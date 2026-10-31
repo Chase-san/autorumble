@@ -17,20 +17,27 @@ enter, and a reviewer checks them when a robot is added to a list.
 - The source of every class must be in the jar.
 - The robot must have a permissive license, stated in the jar or on its RoboWiki page. The wiki page is
   taken as true unless the jar says something that conflicts with it, and a conflict goes to a reviewer.
-- A robot without any license is out, even with its source in the jar.
+- A robot without any license is out, even with its source in the jar. Its license cannot be assumed, even
+  if it took part in earlier competitions.
 
 | Licenses | Ruling |
 |---|---|
-| MIT, BSD, zlib, public domain, RWPCL, RWLPCL, and others of the same kind, such as Apache, ISC, CC0, the Unlicense, WTFPL, CC-BY and "Attribution" | Allowed |
+| MIT, MIT-0, BSD, zlib, public domain, RWPCL, RWLPCL, and others of the same kind, such as Apache, ISC, CC0, the Unlicense, WTFPL, CC-BY and "Attribution" | Allowed |
+| Share-alike licenses with no condition on how a robot competes: GPL, LGPL, EPL, CC-BY-SA | Allowed |
+| Permission in the author's own words, such as "use the code as you see fit" | Allowed, once a reviewer has read it |
 | The Kawigi Public License (KPL), and the Nat Public License (NPL, also NPRL or NRPL) | Not allowed, because of conditions such as derived robots not being allowed to beat the original |
 | Any other condition on how a robot can compete, such as a ban on competitions | Not allowed |
-| GPL, LGPL, EPL, CC-BY-SA, CC-BY-NC, CC-BY-ND, ACCSL | No ruling yet |
-| Permission in the author's own words, with no named license | No ruling yet |
+| CC-BY-ND and CC-BY-NC, which do not allow reuse in general | Not allowed |
+| Only the words "Open Source", or a term nothing defines | Not a license |
+| ACCSL | No ruling yet, and no robot uses it |
 
 A license counts for a robot when it covers the robot's own code: in its main class, a license file, or
 at least half of its source files. Someone else's license on one borrowed file does not license the whole
-robot. A license that is not allowed counts anywhere in the jar, because its conditions apply to any robot
-using that code.
+robot, except for the RWPCL, which requires a robot using its code to be released under it. A license that
+is not allowed counts anywhere in the jar, because its conditions apply to any robot using that code.
+
+The source of a library a robot carries can be missing if the robot's own source is complete and the
+library's source is public.
 
 `tools/license_census.py` sorts robots by these rules and records the evidence for each one, and
 `participants/review/` holds the results and a reviewer's rulings.

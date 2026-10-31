@@ -89,7 +89,8 @@ class JarLicenseTest(unittest.TestCase):
         self.assertEqual(verdict(files)[0], "review-weak")
 
     def test_words_alone_are_not_a_license(self):
-        files = with_files(me__Bot_dot_java="// Compressed with zlib. npl and kpl are counters.\n" + BOT_SOURCE)
+        files = with_files(me__Bot_dot_java='// Compressed with zlib. npl and kpl are counters. out.println("gpl=");\n'
+                           + BOT_SOURCE)
         self.assertEqual(verdict(files)[0], "no-license")
 
     def test_plain_permission_goes_to_review(self):
@@ -113,9 +114,19 @@ class DisallowedTest(unittest.TestCase):
         files = with_files(me__Bot_dot_java=ZLIB + text + BOT_SOURCE)
         self.assertEqual(verdict(files)[:2], ("disallowed", "competition-ban"))
 
-    def test_gpl_needs_a_ruling(self):
+    def test_a_non_commercial_tree_anywhere_is_out(self):
+        files = with_files(me__Bot_dot_java=RWPCL + BOT_SOURCE,
+                           jk__KDTree_dot_java="// Attribution-NonCommercial-ShareAlike\nclass KDTree {}\n",
+                           jk__KDTree_dot_class="")
+        self.assertEqual(verdict(files)[:2], ("disallowed", "CC-BY-NC"))
+
+    def test_gpl_is_allowed(self):
         files = with_files(me__Bot_dot_java="// under the terms of the GNU General Public License\n" + BOT_SOURCE)
-        self.assertEqual(verdict(files)[:2], ("decide", "GPL"))
+        self.assertEqual(verdict(files)[:2], ("eligible", "GPL"))
+
+    def test_mit_0_is_named_as_itself(self):
+        files = with_files(LICENSE="MIT No Attribution\nPermission is hereby granted, free of charge, to any person\n")
+        self.assertEqual(verdict(files)[:2], ("eligible", "MIT-0"))
 
 
 class WikiTest(unittest.TestCase):
@@ -143,11 +154,14 @@ class WikiTest(unittest.TestCase):
         extra = "It borrows from a robot under the Kawigi Public License.\n"
         self.assertEqual(verdict(COMPLETE, page("MIT", extra))[0], "review-conflict")
 
-    def test_share_alike_needs_a_ruling(self):
-        self.assertEqual(verdict(COMPLETE, page("Share-Alike"))[:2], ("decide", "CC-BY-SA"))
+    def test_share_alike_is_allowed(self):
+        self.assertEqual(verdict(COMPLETE, page("Share-Alike"))[:2], ("eligible", "CC-BY-SA"))
 
-    def test_no_derivatives_needs_a_ruling(self):
-        self.assertEqual(verdict(COMPLETE, page("[http://x CC BY-ND 3.0]"))[:2], ("decide", "CC-BY-ND"))
+    def test_no_derivatives_is_out(self):
+        self.assertEqual(verdict(COMPLETE, page("[http://x CC BY-ND 3.0]"))[:2], ("disallowed", "CC-BY-ND"))
+
+    def test_a_license_with_no_ruling_says_so(self):
+        self.assertEqual(verdict(COMPLETE, page("ACCSL"))[:2], ("decide", "ACCSL"))
 
     def test_attribution_on_the_wiki_is_allowed(self):
         self.assertEqual(verdict(COMPLETE, page("Attribution"))[:2], ("eligible", "Attribution"))
@@ -169,8 +183,6 @@ class WikiTest(unittest.TestCase):
     def test_a_jar_conflict_goes_to_review(self):
         files = with_files(me__Bot_dot_java=RWPCL + BOT_SOURCE)
         self.assertEqual(verdict(files, page("[[NPRL]]"))[0], "review-conflict")
-        files = with_files(me__Bot_dot_java="// the GNU General Public License\n" + BOT_SOURCE)
-        self.assertEqual(verdict(files, page("MIT"))[0], "review-conflict")
 
     def test_rights_held_back_in_the_jar_conflict_with_the_wiki(self):
         files = with_files(me__Bot_dot_java="// Copyright Me. All rights reserved.\n" + BOT_SOURCE)

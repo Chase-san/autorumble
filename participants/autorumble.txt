@@ -1,2 +1,47 @@
-# The participants of autorumble, one per line: package.Robot version,download url
-# See docs/rules.md for what a robot needs to enter.
+# Robots designed mostly by AI. See docs/rules.md, and participants/review/autorumble.tsv for the checks.
+# license=MIT-0 source=jar ai="designed by Qwen3.8 27B, reviewer Claude Opus 5.5, fixed by Claude Opus 5.5" by=kpai
+kpai.Agate 6,http://deus:8652/robots/kpai.Agate_6.jar
+# license=MIT-0 source=jar ai="designed by Qwen3.8 27B, fixed by Claude Opus 5.5" by=kpai
+kpai.Basalt 32,http://deus:8652/robots/kpai.Basalt_32.jar
+# license=MIT-0 source=jar ai="designed by Qwen3.8 27B, reviewer Claude Opus 5.5, fixed by Claude Opus 5.5" by=kpai
+kpai.Beryl 28,http://deus:8652/robots/kpai.Beryl_28.jar
+# license=MIT-0 source=jar ai="designed by Qwen3.8 27B with Solar Mini 4, fixed by Claude Opus 5.5" by=kpai
+kpai.Citrine 55,http://deus:8652/robots/kpai.Citrine_55.jar
+# license=MIT-0 source=jar ai="designed by Qwen3.8 27B, reviewer GPT-5.6 Sol, fixed by Claude Opus 5.5" by=kpai
+kpai.Coral 16,http://deus:8652/robots/kpai.Coral_16.jar
+# license=MIT-0 source=jar ai="designed by Gemini 4 Argon, combining its fixed Garnet, Quartz and Mica" by=kpai
+kpai.Feldspar 4,http://deus:8652/robots/kpai.Feldspar_4.jar
+# license=MIT-0 source=jar ai="designed by Qwen3.8 27B, reviewer Gemini 4 Argon, fixed by Claude Opus 5.5" by=kpai
+kpai.Flint 25,http://deus:8652/robots/kpai.Flint_25.jar
+# license=MIT-0 source=jar ai="designed by Kimi K2 Thinking, fixed by Gemini 4 Argon" by=kpai
+kpai.Garnet 62,http://deus:8652/robots/kpai.Garnet_62.jar
+# license=MIT-0 source=jar ai="designed by GPT-6.1 Sol, combining its fixed Mica, Garnet and Sapphire" by=kpai
+kpai.Heliolite 36,http://deus:8652/robots/kpai.Heliolite_36.jar
+# license=MIT-0 source=jar ai="designed by Qwen3.8 27B, reviewer GPT-5.6 Sol, fixed by GPT-6.1 Sol" by=kpai
+kpai.Jasper 20,http://deus:8652/robots/kpai.Jasper_20.jar
+# license=MIT-0 source=jar ai="designed by Qwen3.8 27B, reviewer Gemini 4 Argon, fixed by Claude Opus 5.5" by=kpai
+kpai.Jet 29,http://deus:8652/robots/kpai.Jet_29.jar
+# license=MIT-0 source=jar ai="designed by Qwen3.8 27B, reviewer Claude Opus 5.5, fixed by GPT-6.1 Sol" by=kpai
+kpai.Lapis 23,http://deus:8652/robots/kpai.Lapis_23.jar
+# license=MIT-0 source=jar ai="designed by Qwen3.8 27B, reviewer GPT-6.1 Sol, fixed by GPT-6.1 Sol" by=kpai
+kpai.Mica 28,http://deus:8652/robots/kpai.Mica_28.jar
+# license=MIT-0 source=jar ai="designed by Qwen3.8 27B with Solar Mini 4, fixed by Claude Opus 5.5, aiming at the enemy's turn-back point at a wall (the experimenter's idea)" by=kpai
+kpai.Onyx 38,http://deus:8652/robots/kpai.Onyx_38.jar
+# license=MIT-0 source=jar ai="designed by Qwen3.8 27B, fixed by Claude Opus 5.5" by=kpai
+kpai.Opal 4,http://deus:8652/robots/kpai.Opal_4.jar
+# license=MIT-0 source=jar ai="designed by Qwen3.8 27B, reviewer Claude Opus 5.5, fixed by Claude Opus 5.5" by=kpai
+kpai.Pearl 19,http://deus:8652/robots/kpai.Pearl_19.jar
+# license=MIT-0 source=jar ai="designed by Qwen3.8 27B, reviewer Gemini 4 Argon, fixed by Claude Opus 5.5" by=kpai
+kpai.Quartz 24,http://deus:8652/robots/kpai.Quartz_24.jar
+# license=MIT-0 source=jar ai="designed by Qwen3.8 27B with Kimi K2 Thinking, fixed by Claude Opus 5.5" by=kpai
+kpai.Ruby 34,http://deus:8652/robots/kpai.Ruby_34.jar
+# license=MIT-0 source=jar ai="designed by Qwen3.8 27B with Claude Haiku 4.5, fixed by Claude Opus 5.5" by=kpai
+kpai.Sapphire 23,http://deus:8652/robots/kpai.Sapphire_23.jar
+# license=MIT-0 source=jar ai="designed by Claude Opus 5.5, combining its fixed Garnet, Mica and Ruby" by=kpai
+kpai.Smaragd 29,http://deus:8652/robots/kpai.Smaragd_29.jar
+# license=MIT-0 source=jar ai="designed by Qwen3.8 27B, reviewer Gemini 4 Argon, fixed by Claude Opus 5.5" by=kpai
+kpai.Spinel 35,http://deus:8652/robots/kpai.Spinel_35.jar
+# license=MIT-0 source=jar ai="designed by Solar Mini 4, fixed by Claude Opus 5.5" by=kpai
+kpai.Topaz 51,http://deus:8652/robots/kpai.Topaz_51.jar
+# license=MIT-0 source=jar ai="designed by Qwen3.8 27B, reviewer GPT-5.6 Sol, fixed by Claude Opus 5.5" by=kpai
+kpai.Zircon 21,http://deus:8652/robots/kpai.Zircon_21.jar
