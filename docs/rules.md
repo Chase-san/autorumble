@@ -14,11 +14,26 @@ enter, and a reviewer checks them when a robot is added to a list.
 
 ## OpenRumble
 
-- The source of every class must be in the jar, or in a public repository at a tag matching the version.
-- The source must have an open source license: OSI-approved, or the RoboWiki Public Code License (RWPCL).
+- The source of every class must be in the jar.
+- The robot must have a permissive license, stated in the jar or on its RoboWiki page. The wiki page is
+  taken as true unless the jar says something that conflicts with it, and a conflict goes to a reviewer.
+- A robot without any license is out, even with its source in the jar.
 
-Older robots often do not say what their license is, so they cannot be added automatically. Each one is
-checked by hand before it joins the list.
+| Licenses | Ruling |
+|---|---|
+| MIT, BSD, zlib, public domain, RWPCL, RWLPCL, and others of the same kind, such as Apache, ISC, CC0, the Unlicense, WTFPL, CC-BY and "Attribution" | Allowed |
+| The Kawigi Public License (KPL), and the Nat Public License (NPL, also NPRL or NRPL) | Not allowed, because of conditions such as derived robots not being allowed to beat the original |
+| Any other condition on how a robot can compete, such as a ban on competitions | Not allowed |
+| GPL, LGPL, EPL, CC-BY-SA, CC-BY-NC, CC-BY-ND, ACCSL | No ruling yet |
+| Permission in the author's own words, with no named license | No ruling yet |
+
+A license counts for a robot when it covers the robot's own code: in its main class, a license file, or
+at least half of its source files. Someone else's license on one borrowed file does not license the whole
+robot. A license that is not allowed counts anywhere in the jar, because its conditions apply to any robot
+using that code.
+
+`tools/license_census.py` sorts robots by these rules and records the evidence for each one, and
+`participants/review/` holds the results and a reviewer's rulings.
 
 ## AutoRumble
 

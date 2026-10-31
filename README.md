@@ -87,6 +87,30 @@ RoboWiki page, add a variant to `Source` in [src/participants.rs](src/participan
 already reads the wiki's format, clients always download the list from this server, and a failed fetch
 keeps the last good list.
 
+### Sorting robots for OpenRumble
+
+[tools/license_census.py](tools/license_census.py) sorts robots by [the rules](docs/rules.md): whether the
+source is in the jar, and what license the jar and the robot's wiki page state. It only reads jars, and
+never extracts or runs them. [participants/review/robots.tsv](participants/review/robots.tsv) is its output,
+with a verdict and the evidence for every robot, and
+[participants/review/overrides.tsv](participants/review/overrides.tsv) holds a reviewer's rulings.
+
+To run it again, fetch the wiki pages into a cache first. The wiki limits requests, and has blocked
+addresses before, so [tools/wiki_fetch.py](tools/wiki_fetch.py) uses one bulk export every 2 minutes:
+
+```bash
+python3 tools/wiki_fetch.py pages.json titles.txt
+```
+
+```bash
+python3 tools/license_census.py --list 1v1.txt --list melee.txt --jars robots --wiki pages.json \
+  --overrides participants/review/overrides.tsv --out participants/review/robots.tsv \
+  --write-list 1v1=participants/openrumble.txt --write-list melee=participants/openmelee6.txt
+```
+
+`titles.txt` has one wiki page title per line, normally each robot's class name. The name of each `--list`
+file becomes a column in the output and the label for `--write-list`.
+
 ## Logos
 
 Logos replace LiteRumble's country flags. A logo is a PNG of at most 64x64 pixels and 32 KB, named after
@@ -114,6 +138,7 @@ cargo test
 
 Each module tests its own logic, and [tests/http.rs](tests/http.rs) runs the whole server through its
 routes. `scoring.rs` checks its numbers against values computed separately from LiteRumble's formulas.
+`python3 tools/test_license_census.py` tests the license census.
 
 [tools/crosscheck_literumble.py](tools/crosscheck_literumble.py) goes further: it feeds the same random
 battles to a real LiteRumble and to this server, and compares every score of every robot and pairing.

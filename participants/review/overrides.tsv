@@ -1,0 +1,9 @@
+# A reviewer's rulings, which win over what tools/license_census.py works out.
+# Columns, separated by tabs: robot, verdict, license, reason
+mld.Moebius 2.9.3	no-license		the only matching words are about using someone else's gun
+cx.micro.Smoke 0.96	no-license		the wiki says Unspecified
+tobe.Relativity 3.9	review-informal		says feel free to use this code, and only mentions the GPL as an example
+ags.polished.PolishedRuby 1	review-weak	RWPCL	the wiki says it is probably RWPCL
+kc.mega.BeepBoop 2.0	review-library-source	RWPCL	the wiki page is Kev's BeepBoop; no source for the embedded ags.utils.KdTree
+trab.Crusader 0.1.7	review-informal		the wiki says sure, but hey its really messy
+simonton.micro.WeeklongObsession 3.4.1	no-license		the wiki says not unless you understand it
