@@ -1,4 +1,4 @@
-# Runs the server under your own account, on the port in autorumble.toml. To install it:
+# Runs the server under your own account, on the port in config/server.toml. To install it:
 #
 #   cp deploy/autorumble-local.service ~/.config/systemd/user/autorumble.service
 #   systemctl --user daemon-reload
@@ -11,7 +11,7 @@ Description=AutoRumble server
 
 [Service]
 WorkingDirectory=%h/projects/autorumble
-ExecStart=%h/projects/autorumble/target/release/autorumble autorumble.toml
+ExecStart=%h/projects/autorumble/target/release/autorumble config
 Restart=on-failure
 RestartSec=2
 

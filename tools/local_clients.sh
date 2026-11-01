@@ -1,16 +1,16 @@
 #!/usr/bin/env bash
 # Runs RoboRumble clients on this machine, to fill the rumbles of a server running here.
 #
-#   tools/local_clients.sh setup ROBOCODE_DIR CLIENT_JAR   make the client folders
+#   tools/local_clients.sh setup ROBOCODE_DIR ROBOTS_DIR   make the client folders
 #   tools/local_clients.sh start [HOURS]                   run them in the background, 3 hours by default
 #   tools/local_clients.sh stop                            stop them
 #   tools/local_clients.sh status                          show what is running
 #
-# CLIENT_JAR is a roborumble.jar that supports HIDENAMES. Each client gets its own folder under
-# $CLIENTS, because a client writes to its config, robot database and robot data. Set the number of
-# clients per rumble below. Robot jars are hard links, so the folders stay small. A rumble with an
-# empty participant list gets no clients. Jars missing from ROBOCODE_DIR are downloaded by the client
-# from the URL in the list, like any other client would.
+# ROBOCODE_DIR is a Robocode installation whose client supports HIDENAMES. ROBOTS_DIR holds robot
+# jars. Each client gets its own folder under $CLIENTS, because a client writes to its config, robot
+# database and robot data. Set the number of clients per rumble below. Robot jars are hard links, so
+# the folders stay small. A rumble with an empty participant list gets no clients. Jars missing from
+# ROBOTS_DIR are downloaded by the client from the URL in the list, like any other client would.
 #
 # Each iteration runs in a new JVM: on Java 21 Robocode cannot kill a runaway robot thread, so threads
 # from a misbehaving robot end with the JVM instead of piling up.
@@ -28,26 +28,24 @@ automelee6 4 5
 openmelee6 8 5"
 
 participants() {  # the "name version" of each robot on a rumble's list
-  grep -v '^#' "$REPO/participants/$1.txt" | cut -d, -f1 | grep .
+  cut -d, -f1 "$REPO/participants/$1.txt" | grep .
 }
 
 setup() {
-  local robocode="$1" jar="$2"
+  local robocode="$1" robots="$2"
   mkdir -p "$CLIENTS"
-  cp "$jar" "$CLIENTS/roborumble.jar"
   while read -r rumble count battles; do
     [ "$(participants "$rumble" | wc -l)" -gt 0 ] || { echo "$rumble: no participants, skipping"; continue; }
     for number in $(seq -w 1 "$count"); do
       local client="$CLIENTS/$rumble-$number"
       mkdir -p "$client/robots" "$client/roborumble/temp" "$client/roborumble/files"
       cp -r "$robocode/libs" "$robocode/config" "$robocode/set_java_options.sh" "$client/"
-      cp "$CLIENTS/roborumble.jar" "$client/libs/roborumble.jar"
       cp "$robocode/roborumble/roborumble.properties" "$client/roborumble/"
       sed -e "s#localhost:8652#$SERVER#g" -e "s/^USER=.*/USER=$UPLOADER/" -e "s/^ITERATE=.*/ITERATE=NOT/" \
           -e "s/^NUMBATTLES=.*/NUMBATTLES=$battles/" "$REPO/client/$rumble.txt" > "$client/roborumble/$rumble.txt"
       participants "$rumble" | tr ' ' '_' | while read -r name; do
-        if [ -e "$robocode/robots/$name.jar" ] && [ ! -e "$client/robots/$name.jar" ]; then
-          ln "$robocode/robots/$name.jar" "$client/robots/"
+        if [ -e "$robots/$name.jar" ] && [ ! -e "$client/robots/$name.jar" ]; then
+          ln "$robots/$name.jar" "$client/robots/"
         fi
       done
     done

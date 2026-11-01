@@ -20,12 +20,17 @@ gets a verdict with the evidence for it, because a reviewer has to be able to ch
 
 Overrides from a reviewer win over everything else. See load_overrides().
 
+It writes three things: the full review of every robot, a bare participant list for each rumble,
+and a license record of the robots that are in, for notary purposes.
+
 usage: license_census.py --list LIST.txt [--list ...] --jars DIR [--jars ...] [--wiki pages.json]
-                         [--overrides overrides.tsv] --out robots.tsv
+                         [--overrides overrides.tsv] [--ai ai.tsv] --out robots.tsv
+                         [--write-list LABEL=RUMBLE.txt ...] [--write-licenses licenses.tsv]
 """
 import argparse
 import collections
 import csv
+import hashlib
 import json
 import pathlib
 import re
@@ -136,6 +141,7 @@ class Jar:
         self.informal = ""
         self.reserved = ""  # wording in the robot's own files that holds rights back
         self.readable = False
+        self.sha256 = ""
         if path is not None:
             self.read(path)
 
@@ -147,6 +153,7 @@ class Jar:
             self.source = "unreadable"
             return
         self.readable = True
+        self.sha256 = hashlib.sha256(pathlib.Path(path).read_bytes()).hexdigest()
         texts = {}
         for info in archive.infolist():
             if not info.is_dir() and info.file_size <= MAX_TEXT_BYTES and TEXT_FILE.search(info.filename):
@@ -474,13 +481,42 @@ def find_jar(name, directories):
     return None
 
 
+def load_ai_declarations(path):
+    """What each AutoRumble author declares about their robot: a TSV of robot name and declaration."""
+    declarations = {}
+    if path and pathlib.Path(path).exists():
+        for line in pathlib.Path(path).read_text(encoding="utf-8").splitlines():
+            if line.strip():
+                name, declaration = line.split("\t")
+                declarations[name] = declaration
+    return declarations
+
+
 def write_participants(path, rows):
-    """A participant list with the evidence for each robot in a comment above it."""
-    lines = ["# Written by tools/license_census.py. See docs/rules.md and participants/review/."]
-    for row in rows:
-        lines.append(f"# license={row['license']} source=jar from={row['reason'].split(';')[0]}")
-        lines.append(f"{row['robot']},{row['url']}")
-    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    """A participant list: one robot per line, and nothing else."""
+    path.write_text("".join(f"{row['robot']},{row['url']}\n" for row in rows), encoding="utf-8", newline="\n")
+
+
+def license_evidence(row):
+    """Who decided a robot's license, and the words they went by."""
+    if row["reason"].startswith("reviewer: "):
+        return "reviewer", row["reason"][len("reviewer: "):]
+    if row["reason"].split(";")[0] == "wiki":
+        return "wiki", row["wiki_license"]
+    return "jar", row["jar_license"]
+
+
+def write_licenses(path, rows, rumbles_by_label, declarations):
+    """The license record: why each robot is in, and exactly which jar that was decided for."""
+    with open(path, "w", newline="", encoding="utf-8") as out:
+        writer = csv.writer(out, delimiter="\t", lineterminator="\n")
+        writer.writerow(["robot", "rumbles", "license", "decided_by", "evidence", "ai", "sha256", "url"])
+        for row in rows:
+            rumbles = [rumble for label, rumble in rumbles_by_label.items() if row[label]]
+            if row["verdict"] == "eligible" and rumbles:
+                decided_by, evidence = license_evidence(row)
+                writer.writerow([row["robot"], " ".join(rumbles), row["license"], decided_by, evidence,
+                                 declarations.get(row["robot"], ""), row["sha256"], row["url"]])
 
 
 def main():
@@ -489,8 +525,10 @@ def main():
     parser.add_argument("--jars", action="append", required=True)
     parser.add_argument("--wiki")
     parser.add_argument("--overrides")
+    parser.add_argument("--ai", help="what each AutoRumble author declares, a TSV of robot and declaration")
     parser.add_argument("--write-list", action="append", default=[], metavar="LABEL=PATH",
                         help="write the eligible robots of a list as a participant list")
+    parser.add_argument("--write-licenses", help="write the license record of every robot that is in")
     parser.add_argument("--out", required=True)
     args = parser.parse_args()
 
@@ -513,6 +551,7 @@ def main():
         row.update({
             "author": jar.author,
             "source": jar.source,
+            "sha256": jar.sha256,
             "classes": jar.classes,
             "no_source_for": " ".join(jar.missing[:8]),
             "jar_license": "; ".join(f"{k} [{v}]" for k, v in jar.strong.items()),
@@ -534,9 +573,13 @@ def main():
         writer.writeheader()
         writer.writerows(rows)
 
+    rumbles_by_label = {}
     for request in args.write_list:
         label, path = request.split("=", 1)
+        rumbles_by_label[label] = pathlib.Path(path).stem
         write_participants(pathlib.Path(path), [row for row in rows if row[label] and row["verdict"] == "eligible"])
+    if args.write_licenses:
+        write_licenses(args.write_licenses, rows, rumbles_by_label, load_ai_declarations(args.ai))
 
     print(f"{len(rows)} robots")
     for label in labels:

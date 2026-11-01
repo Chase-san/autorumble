@@ -17,7 +17,6 @@ use tempfile::TempDir;
 use tower::ServiceExt;
 
 const LIST: &str = "\
-# A comment
 a.One 1.0,http://example.com/a.jar
 b.Two 2.0,http://example.com/b.jar
 c.Three 3.0,http://example.com/c.jar

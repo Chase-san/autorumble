@@ -53,7 +53,7 @@ pub fn parse_list(text: &str) -> ParsedList {
     let mut list = ParsedList::default();
     for line in entry_lines(text) {
         let line = line.trim();
-        if line.is_empty() || line.starts_with('#') {
+        if line.is_empty() {
             continue;
         }
         match parse_entry(line) {
@@ -133,8 +133,8 @@ mod tests {
     }
 
     #[test]
-    fn parses_a_plain_file_with_comments() {
-        let list = parse_list("# A comment\n\na.One 1.0,http://x/a.jar\nb.Two 2_rc-1,12345\n");
+    fn parses_a_plain_file() {
+        let list = parse_list("a.One 1.0,http://x/a.jar\n\nb.Two 2_rc-1,12345\n");
         assert_eq!(names(&list), ["a.One 1.0", "b.Two 2_rc-1"]);
         assert_eq!(list.participants[1].link, "12345");
         assert!(list.invalid.is_empty());

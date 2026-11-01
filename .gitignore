@@ -1,3 +1,16 @@
+# Built programs
 target/
+
+# The database, which holds every battle, and anything else the server writes
 data/
+*.db
+*.db-shm
+*.db-wal
+
+# Robot jars served from this machine
 robots/
+
+# Logs and Python's caches
+*.log
+__pycache__/
+*.pyc

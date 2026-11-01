@@ -39,8 +39,8 @@ is not allowed counts anywhere in the jar, because its conditions apply to any r
 The source of a library a robot carries can be missing if the robot's own source is complete and the
 library's source is public.
 
-`tools/license_census.py` sorts robots by these rules and records the evidence for each one, and
-`participants/review/` holds the results and a reviewer's rulings.
+`tools/license_census.py` sorts robots by these rules. `participants/review/` holds its full results
+and a reviewer's rulings.
 
 ## AutoRumble
 
@@ -51,8 +51,8 @@ AutoRumble is for robots designed mostly by AI. Everything for OpenRumble applie
 - The author declares which AI tools were used, and that AI wrote most of the code and made the key
   design decisions. People setting goals and running benchmarks is fine.
 - A robot cannot be mostly a port of a robot written by a person.
-- One person can have at most 3 active robots, because AI makes robots cheap and an author's own weak
-  robots could inflate the score of their best one.
+
+Neither rumble limits how many robots one person can enter.
 
 ## Melee6
 
@@ -61,11 +61,13 @@ the client will not schedule a melee battle otherwise.
 
 ## Adding a robot
 
-Add one line to the rumble's list in `participants/`, with a comment above it recording the checks:
+Add one line to the rumble's list in `participants/`, and nothing else:
 
 ```
-# license=zlib source=jar ai="Claude, all code and design" by=Chase-san
 claude.Umbra 0.5,https://example.com/claude.Umbra_0.5.jar
 ```
 
 The name and version must match the jar's `robot.properties`, or clients will reject the download.
+
+The checks go in `participants/licenses.tsv`, which `tools/license_census.py` writes. It records each
+robot's license, who decided it and on what words, any AI declaration, and the SHA-256 of the exact jar.

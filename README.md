@@ -20,11 +20,11 @@ format. [docs/scoring.html](docs/scoring.html) defines the scores.
 ## Running it
 
 ```bash
-cargo run --release -- autorumble.toml
+cargo run --release
 ```
 
-Then open http://127.0.0.1:8652/. [autorumble.toml](autorumble.toml) documents every setting. It keeps
-all its data in one SQLite file.
+Then open http://127.0.0.1:8652/. [config/](config/) holds the settings and the rumble definitions, and
+[its README](config/README.md) explains them. The server keeps all its data in one SQLite file.
 
 ### On your own network
 
@@ -36,7 +36,7 @@ To fill the rumbles, [tools/local_clients.sh](tools/local_clients.sh) runs RoboR
 machine:
 
 ```bash
-tools/local_clients.sh setup ~/robocode path/to/roborumble.jar
+tools/local_clients.sh setup path/to/robocode ~/robocode/robots
 ```
 
 ```bash
@@ -49,8 +49,8 @@ any other robot.
 
 ### In public
 
-[deploy/](deploy/) has a systemd unit and an nginx configuration. Change `listen` in `autorumble.toml` to
-`127.0.0.1:8652`, so that everything goes through nginx.
+[deploy/](deploy/) has a systemd unit and an nginx configuration. Change `listen` in
+`config/server.toml` to `127.0.0.1:8652`, so that everything goes through nginx.
 
 To back up the database while the server runs:
 
@@ -103,11 +103,15 @@ The design rests on three decisions:
 
 ## Participants
 
-The lists are the files in [participants/](participants/), so entering a robot is a reviewed change to
-this repository. The server reads them again every few minutes, and removing a line retires a robot.
-Its battles stay in the database, and adding the line back restores them.
+The lists are the files in [participants/](participants/), with one `name version,url` per line and
+nothing else, so entering a robot is a reviewed change to this repository. The server reads them again
+every few minutes, and removing a line retires a robot. Its battles stay in the database, and adding the
+line back restores them.
 
-Each rumble says where its list comes from in `autorumble.toml`. To use a web page later, such as a
+[participants/licenses.tsv](participants/licenses.tsv) is the license record: for each robot that is in, its
+license, who decided it and on what words, any AI declaration, and the SHA-256 of the exact jar.
+
+Each rumble says where its list comes from in its file in `config/rumbles/`. To use a web page later, such as a
 RoboWiki page, add a variant to `Source` in [src/participants.rs](src/participants.rs). The parser
 already reads the wiki's format, clients always download the list from this server, and a failed fetch
 keeps the last good list.
@@ -129,7 +133,8 @@ python3 tools/wiki_fetch.py pages.json titles.txt
 
 ```bash
 python3 tools/license_census.py --list 1v1.txt --list melee.txt --jars robots --wiki pages.json \
-  --overrides participants/review/overrides.tsv --out participants/review/robots.tsv \
+  --overrides participants/review/overrides.tsv --ai participants/review/ai.tsv \
+  --out participants/review/robots.tsv --write-licenses participants/licenses.tsv \
   --write-list 1v1=participants/openrumble.txt --write-list melee=participants/openmelee6.txt
 ```
 

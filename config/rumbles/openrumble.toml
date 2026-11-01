@@ -1,0 +1,5 @@
+title = "OpenRumble"
+field = "800x600"
+rounds = 35
+hide_names = true
+participants = { file = "participants/openrumble.txt" }

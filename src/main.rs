@@ -1,4 +1,4 @@
-//! Starts the server: `autorumble [config file]`, with `autorumble.toml` as the default file.
+//! Starts the server: `autorumble [configuration]`, with the `config` directory as the default.
 
 use std::process::ExitCode;
 use std::sync::Arc;
@@ -9,7 +9,7 @@ use autorumble::web;
 
 #[tokio::main]
 async fn main() -> ExitCode {
-    let path = std::env::args().nth(1).unwrap_or_else(|| "autorumble.toml".to_string());
+    let path = std::env::args().nth(1).unwrap_or_else(|| "config".to_string());
     match run(&path).await {
         Ok(()) => ExitCode::SUCCESS,
         Err(message) => {

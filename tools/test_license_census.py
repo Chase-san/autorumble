@@ -229,6 +229,45 @@ class WikiTest(unittest.TestCase):
         self.assertEqual(census.decide_verdict(jar, wiki)[:2], ("eligible", "MIT"))
 
 
+class OutputTest(unittest.TestCase):
+    def row(self, **changes):
+        row = {"robot": "a.One 1.0", "verdict": "eligible", "license": "MIT", "reason": "jar", "duel": "yes", "melee": "",
+               "wiki_license": "", "jar_license": "MIT [a/One.java: MIT License]", "sha256": "abc", "url": "http://x/a.jar"}
+        row.update(changes)
+        return row
+
+    def test_participant_lists_have_no_comments(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = pathlib.Path(directory) / "list.txt"
+            census.write_participants(path, [self.row()])
+            self.assertEqual(path.read_text(), "a.One 1.0,http://x/a.jar\n")
+
+    def test_the_license_record_holds_the_robots_that_are_in(self):
+        rows = [
+            self.row(),
+            self.row(robot="b.Two 1", verdict="no-license"),
+            self.row(robot="c.Three 1", reason="wiki", license="RWPCL", wiki_license="RWPCL [infobox license: RWPCL]",
+                     duel="", melee="yes"),
+            self.row(robot="d.Four 1", reason="reviewer: the wiki says sure", license="permission"),
+            self.row(robot="e.Five 1", duel="", melee=""),
+        ]
+        with tempfile.TemporaryDirectory() as directory:
+            path = pathlib.Path(directory) / "licenses.tsv"
+            census.write_licenses(path, rows, {"duel": "openrumble", "melee": "openmelee6"}, {"a.One 1.0": "designed by AI"})
+            lines = [line.split("\t") for line in path.read_text().splitlines()]
+        self.assertEqual(lines[0][:4], ["robot", "rumbles", "license", "decided_by"])
+        self.assertEqual([line[0] for line in lines[1:]], ["a.One 1.0", "c.Three 1", "d.Four 1"])
+        self.assertEqual(lines[1][1:6], ["openrumble", "MIT", "jar", "MIT [a/One.java: MIT License]", "designed by AI"])
+        self.assertEqual(lines[1][6], "abc")
+        self.assertEqual(lines[2][1:5], ["openmelee6", "RWPCL", "wiki", "RWPCL [infobox license: RWPCL]"])
+        self.assertEqual(lines[3][3:5], ["reviewer", "the wiki says sure"])
+
+    def test_the_record_names_the_exact_jar(self):
+        with tempfile.TemporaryDirectory() as directory:
+            jar = census.Jar(make_jar(directory, COMPLETE))
+        self.assertEqual(len(jar.sha256), 64)
+
+
 class ListTest(unittest.TestCase):
     def test_reads_lists_and_remembers_which(self):
         with tempfile.TemporaryDirectory() as directory:

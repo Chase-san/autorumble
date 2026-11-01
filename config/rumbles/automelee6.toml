@@ -1,0 +1,6 @@
+title = "AutoRumble Melee6"
+field = "800x800"
+rounds = 35
+melee_bots = 6
+hide_names = true
+participants = { file = "participants/automelee6.txt" }
