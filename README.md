@@ -100,6 +100,8 @@ The design rests on three decisions:
 | `src/store.rs` | The database |
 | `src/participants.rs` | Reading participant lists |
 | `src/logos.rs` | Author logos |
+| `config/` | The server's settings and the rumble definitions |
+| `participants/` | The participant lists and the license record |
 
 ## Participants
 
@@ -141,6 +143,25 @@ python3 tools/license_census.py --list 1v1.txt --list melee.txt --jars robots --
 `titles.txt` has one wiki page title per line, normally each robot's class name. The name of each `--list`
 file becomes a column in the output and the label for `--write-list`.
 
+### Checking robots with hidden names
+
+A robot can break when it cannot see real names, so it is worth checking new ones.
+[tools/name_check.sh](tools/name_check.sh) runs each listed robot against fixed opponents with names hidden
+and shown, and [tools/name_check_report.py](tools/name_check_report.py) shows which scores differ and which
+errors only appear with names hidden:
+
+```bash
+tools/name_check.sh path/to/robocode ~/robocode/robots 36
+```
+
+```bash
+tools/name_check_report.py ~/name-check/results.tsv
+```
+
+A short battle is noisy, so run anything that looks wrong again with more rounds before believing it, using a
+jobs file as described at the top of the script. This only tests fresh robots. A robot that saves data per
+opponent reuses the files for `#0` and `#1` with every opponent, which shows up over a long run instead.
+
 ## Logos
 
 Logos replace LiteRumble's country flags. A logo is a PNG of at most 64x64 pixels and 32 KB, named after
@@ -172,6 +193,36 @@ routes. `scoring.rs` checks its numbers against values computed separately from 
 
 [tools/crosscheck_literumble.py](tools/crosscheck_literumble.py) goes further: it feeds the same random
 battles to a real LiteRumble and to this server, and compares every score of every robot and pairing.
+
+## How far it scales
+
+The number of battles barely matters. Each pairing is a fixed set of totals, so more battles do not make
+the scores slower to compute or take more memory, and the pages are served from memory. These are from
+[tools/load_test.py](tools/load_test.py) with 650 robots, limited to 1 GB of memory on an NVMe disk:
+
+| Results stored | Uploads per second | Memory | Database | Page time |
+|---|---|---|---|---|
+| 1 million | 29,000 | 130 MB | 56 MB | 3 ms |
+| 10 million | 33,000 | 157 MB | 484 MB | 3 ms |
+| 25 million | 19,000 to 27,000 | 159 MB | 1.2 GB | 3 ms |
+
+What does grow with battles is the disk, at 48 bytes per result, and the time to restart, about 0.7 seconds per
+million results, because the server reads every result when it starts. 32 clients produce about 1.3 million
+results a day, so a year of that is about 22 GB and a five-minute restart. Keeping a snapshot of the totals
+would remove the wait if it ever matters.
+
+The number of robots does matter, because the standings compare every robot with every other.
+[examples/scale.rs](examples/scale.rs) times one calculation, which takes the same time at any number of battles:
+
+| Robots | Standings | Priority battles | Peak memory |
+|---|---|---|---|
+| 148 | 7 ms | 2 ms | 6 MB |
+| 650 | 204 ms | 57 ms | 80 MB |
+| 1,216 | 740 ms | 190 ms | 284 MB |
+| 3,000 | 6 s | 1.4 s | 1.8 GB |
+
+Uploads wait during this calculation, which runs at most every `standings_seconds`. Raise that setting for a
+very large rumble.
 
 ## Credits
 
