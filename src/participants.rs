@@ -8,7 +8,7 @@
 //! engine keeps the last good one.
 
 use std::path::PathBuf;
-use std::sync::mpsc::Sender;
+use std::sync::mpsc::{Receiver, Sender};
 use std::time::Duration;
 
 use serde::Deserialize;
@@ -102,21 +102,40 @@ fn fetch(url: &str) -> Result<String, String> {
     response.body_mut().read_to_string().map_err(|e| format!("cannot read {url}: {e}"))
 }
 
-/// Fetches the pages in turn for as long as the server runs, and sends each one with its address.
-/// This runs on its own thread, so a slow site cannot hold up uploads. The requests are spread
-/// evenly over the given time, because some sites refuse requests that come close together.
+/// A page's address, and its text or why there is none.
+pub type FetchedPage = (String, Result<String, String>);
+
+/// Fetches the pages whenever clients are active, and sends each one to the engine. This runs on its
+/// own thread, so a slow site cannot hold up uploads, and it ends when the engine goes away.
 pub fn fetch_pages(
     urls: &[String],
     seconds: u64,
-    pages: &Sender<(String, Result<String, String>)>,
+    activity: &Receiver<()>,
+    pages: &Sender<FetchedPage>,
 ) {
     let every = Duration::from_secs(seconds.max(MIN_FETCH_SECONDS));
+    fetch_rounds(urls, every, activity, pages, fetch);
+}
+
+/// Each signal of client activity brings one round of fetches, so an idle server asks nothing of the
+/// sites. The requests are spread evenly over the round, because some sites refuse requests that
+/// come close together. A round takes the given time, which limits how often a page is fetched
+/// however busy the clients are.
+fn fetch_rounds(
+    urls: &[String],
+    every: Duration,
+    activity: &Receiver<()>,
+    pages: &Sender<FetchedPage>,
+    fetch: impl Fn(&str) -> Result<String, String>,
+) {
     let pause = every / urls.len().max(1) as u32;
-    for url in urls.iter().cycle() {
-        if pages.send((url.clone(), fetch(url))).is_err() {
-            return;
+    while activity.recv().is_ok() {
+        for url in urls {
+            if pages.send((url.clone(), fetch(url))).is_err() {
+                return;
+            }
+            std::thread::sleep(pause);
         }
-        std::thread::sleep(pause);
     }
 }
 
@@ -199,7 +218,61 @@ pub fn to_client_text(participants: &[Participant]) -> String {
 
 #[cfg(test)]
 mod tests {
+    use std::sync::mpsc::{channel, sync_channel};
+    use std::sync::{Arc, Mutex};
+    use std::time::Instant;
+
     use super::*;
+
+    const WAIT: Duration = Duration::from_secs(5);
+
+    #[test]
+    fn pages_are_only_fetched_after_client_activity() {
+        let (signal, activity) = sync_channel(1);
+        let (sender, pages) = channel();
+        let urls = ["a".to_string(), "b".to_string()];
+        let fetching = std::thread::spawn(move || {
+            let every = Duration::from_millis(100);
+            fetch_rounds(&urls, every, &activity, &sender, |url| Ok(url.to_string()));
+        });
+
+        assert!(pages.recv_timeout(Duration::from_millis(300)).is_err(), "no activity yet");
+
+        signal.send(()).unwrap();
+        assert_eq!(pages.recv_timeout(WAIT).unwrap().0, "a");
+        assert_eq!(pages.recv_timeout(WAIT).unwrap().0, "b");
+        assert!(pages.recv_timeout(Duration::from_millis(300)).is_err(), "idle again");
+
+        drop(signal);
+        fetching.join().unwrap();
+    }
+
+    #[test]
+    fn busy_clients_cannot_make_fetches_more_frequent() {
+        let every = Duration::from_millis(100);
+        let (signal, activity) = sync_channel(1);
+        let (sender, pages) = channel();
+        let times = Arc::new(Mutex::new(Vec::new()));
+        let fetch_times = times.clone();
+        let fetching = std::thread::spawn(move || {
+            let urls = ["a".to_string()];
+            fetch_rounds(&urls, every, &activity, &sender, |_| {
+                fetch_times.lock().unwrap().push(Instant::now());
+                Ok(String::new())
+            });
+        });
+
+        for _ in 0..50 {
+            let _ = signal.try_send(());
+            std::thread::sleep(Duration::from_millis(10));
+        }
+        drop(signal);
+        fetching.join().unwrap();
+
+        assert!(pages.try_iter().count() >= 2);
+        let times = times.lock().unwrap();
+        assert!(times.windows(2).all(|pair| pair[1] - pair[0] >= every), "{times:?}");
+    }
 
     fn from_file() -> Source {
         Source { file: Some("list.txt".into()), ..Source::default() }

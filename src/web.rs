@@ -214,6 +214,7 @@ async fn participants_list(
 ) -> Result<Response, NotFound> {
     let snapshot = engine.snapshot();
     let rumble = find_rumble(&snapshot, &params)?;
+    engine.client_activity();
     Ok(text(participants::to_client_text(&rumble.participants)))
 }
 

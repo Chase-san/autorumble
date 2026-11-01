@@ -44,8 +44,11 @@ be any text. That lets one page hold the lists of several rumbles:
 participants = { url = "https://example.com/lists", open = "<!-- openrumble -->", close = "<!-- /openrumble -->" }
 ```
 
-Every `participants_seconds`, and at most once a minute, the server fetches each page once, however many rumbles use
-it. If a page cannot be fetched, has lost its tags or has no robots, the rumble keeps the list it has. The last list
+The server only fetches a page while clients are active, which means uploading results or downloading a list. With
+no clients, it sends no requests at all, apart from one at startup if a rumble has no saved list yet. It fetches each
+page at most once a minute, however many rumbles use it. To fetch less often, raise `participants_seconds`.
+
+If a page cannot be fetched, has lost its tags or has no robots, the rumble keeps the list it has. The last list
 fetched is saved next to the database, so restarting does not need the site to be up. Until a rumble's first list
 arrives, clients hold on to their results and send them again later.
 

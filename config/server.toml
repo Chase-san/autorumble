@@ -18,8 +18,9 @@ robots = "robots"
 # How often to recompute the standings of a rumble with new battles.
 standings_seconds = 10
 
-# How often to read the participant lists and logos again.
-participants_seconds = 300
+# How often to read the participant files and logos again. A page on a web server is fetched no more
+# often than this, and never more than once a minute, and only while clients are active.
+participants_seconds = 60
 
 # Battles older than this are rejected.
 max_battle_age_hours = 24

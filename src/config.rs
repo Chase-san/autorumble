@@ -37,7 +37,8 @@ pub struct Config {
     /// How often to recompute the standings of a rumble with new battles.
     #[serde(default = "default_standings_seconds")]
     pub standings_seconds: u64,
-    /// How often to read the participant lists and logos again.
+    /// How often to read the participant files and logos again. A page on a web server is fetched
+    /// no more often than this, and never more than once a minute, and only while clients are active.
     #[serde(default = "default_participants_seconds")]
     pub participants_seconds: u64,
     /// Battles older than this are rejected.
@@ -86,7 +87,7 @@ fn default_standings_seconds() -> u64 {
 }
 
 fn default_participants_seconds() -> u64 {
-    300
+    60
 }
 
 fn default_max_battle_age_hours() -> u64 {

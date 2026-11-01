@@ -12,9 +12,9 @@
 //! The only thing read outside this thread is the list of a pairing's battles, because the scores do
 //! not keep them. A page reads those through its own read-only connection to the database.
 //!
-//! Participant lists from web servers are fetched on a thread of their own, which sends each page
-//! here. The last list fetched is saved next to the database, so a restart while the site is down
-//! does not empty the rumble.
+//! Participant lists from web servers are fetched on a thread of their own, only while clients are
+//! active, and it sends each page here. The last list fetched is saved next to the database, so a
+//! restart while the site is down does not empty the rumble.
 
 use std::collections::{BTreeMap, HashMap};
 use std::path::{Path, PathBuf};
@@ -27,7 +27,7 @@ use tokio::sync::oneshot;
 
 use crate::config::{Config, RumbleConfig};
 use crate::logos::Logos;
-use crate::participants::{self, Participant};
+use crate::participants::{self, FetchedPage, Participant};
 use crate::priority;
 use crate::protocol::{self, Outcome, Upload};
 use crate::scoring::{BattleScores, BotId, Entrant, Standings, Tally};
@@ -97,6 +97,7 @@ struct Job {
 pub struct Engine {
     jobs: SyncSender<Job>,
     snapshot: Arc<RwLock<Arc<Snapshot>>>,
+    activity: SyncSender<()>,
     database: PathBuf,
     robots: Option<PathBuf>,
 }
@@ -108,16 +109,24 @@ impl Engine {
         let database = config.database.clone();
         let worker = Worker::new(config)?;
         let snapshot = worker.snapshot.clone();
+        let activity = worker.activity.clone();
         let (jobs, queue) = sync_channel(QUEUE_LENGTH);
         std::thread::Builder::new()
             .name("engine".to_string())
             .spawn(move || run_or_exit(worker, queue))
             .map_err(|e| format!("cannot start the engine thread: {e}"))?;
-        Ok(Engine { jobs, snapshot, database, robots })
+        Ok(Engine { jobs, snapshot, activity, database, robots })
+    }
+
+    /// Notes that a client has done something, which lets the lists on web servers be fetched. If a
+    /// fetch is already waiting its turn, that one covers this.
+    pub fn client_activity(&self) {
+        let _ = self.activity.try_send(());
     }
 
     /// Stores results, one per line, and waits until they are safe.
     pub async fn upload(&self, lines: Vec<String>) -> Reply {
+        self.client_activity();
         let count = lines.len();
         let busy = || Reply {
             outcomes: vec![Outcome::Retry("server busy".to_string()); count],
@@ -270,8 +279,10 @@ struct Worker {
     uploader_ids: HashMap<String, u32>,
     logos: Arc<Logos>,
     snapshot: Arc<RwLock<Arc<Snapshot>>>,
-    /// Pages fetched from web servers, each with its address.
-    pages: Receiver<(String, Result<String, String>)>,
+    /// Pages fetched from web servers.
+    pages: Receiver<FetchedPage>,
+    /// Tells the thread that fetches those pages to fetch them.
+    activity: SyncSender<()>,
     lists_read: Instant,
     standings_computed: Instant,
     rng: Rng,
@@ -329,11 +340,12 @@ impl Worker {
         urls.sort();
         urls.dedup();
         let (page_sender, pages) = channel();
+        let (activity, signals) = sync_channel(1);
         if !urls.is_empty() {
             let seconds = config.participants_seconds;
             std::thread::Builder::new()
                 .name("participants".to_string())
-                .spawn(move || participants::fetch_pages(&urls, seconds, &page_sender))
+                .spawn(move || participants::fetch_pages(&urls, seconds, &signals, &page_sender))
                 .map_err(|e| format!("cannot start the thread that fetches lists: {e}"))?;
         }
 
@@ -346,11 +358,18 @@ impl Worker {
             logos: Arc::new(Logos::default()),
             snapshot: Arc::new(RwLock::new(Arc::new(Snapshot::default()))),
             pages,
+            activity,
             lists_read: Instant::now(),
             standings_computed: Instant::now(),
             rng: Rng::new(),
         };
         worker.restore_saved_lists();
+        // A rumble with nothing saved gets its first list without waiting for a client.
+        if worker.rumbles.iter().any(|rumble| {
+            rumble.config.participants.url.is_some() && rumble.participants.is_empty()
+        }) {
+            let _ = worker.activity.try_send(());
+        }
         worker.read_lists();
         worker.compute_standings();
         worker.publish();

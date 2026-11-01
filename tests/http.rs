@@ -547,6 +547,17 @@ async fn wait_for_list(app: &Router, game: &str, expected: &str) -> String {
     list
 }
 
+/// Waits until the site has had this many requests, and fails if it does not get them.
+async fn wait_for_requests(pages: &PageServer, count: usize) {
+    for _ in 0..100 {
+        if pages.requests.load(Ordering::SeqCst) >= count {
+            break;
+        }
+        tokio::time::sleep(Duration::from_millis(50)).await;
+    }
+    assert_eq!(pages.requests.load(Ordering::SeqCst), count);
+}
+
 async fn upload_to(app: &Router, line: String) -> String {
     respond(app, Request::post("/UploadedResults").body(Body::from(line)).unwrap()).await.1
 }
@@ -594,6 +605,9 @@ async fn a_fetched_list_survives_a_restart_while_the_site_is_down() {
     let reply = upload_to(&app, result("a.One 1.0", 300, "b.Two 2.0", 100, now_ms())).await;
     assert!(reply.contains("OK"), "{reply}");
     assert!(!reply.contains("ERROR"), "{reply}");
+
+    // An upload is activity too, so the server tried the site again.
+    wait_for_requests(&pages, 2).await;
 }
 
 #[tokio::test]
@@ -606,10 +620,44 @@ async fn a_page_that_lost_its_tags_changes_nothing() {
 
     *pages.page.lock().unwrap() = Some("x.Vandal 1.0,http://example.com/x.jar\n".to_string());
     let app = serve_from_page(directory.path(), &pages.url);
+    wait_for_list(&app, "duel", "a.One 1.0").await;
+    wait_for_requests(&pages, 2).await;
     tokio::time::sleep(Duration::from_millis(1500)).await;
     let list = wait_for_list(&app, "duel", "a.One 1.0").await;
     assert!(list.contains("b.Two 2.0"), "{list}");
     assert!(!list.contains("x.Vandal"), "{list}");
+}
+
+#[tokio::test]
+async fn an_idle_server_asks_nothing_of_the_site() {
+    let directory = tempfile::tempdir().unwrap();
+    let pages = PageServer::start(Some(PAGE));
+
+    // With nothing saved, it fetches once to get started, and then waits for a client.
+    let app = serve_from_page(directory.path(), &pages.url);
+    wait_for_requests(&pages, 1).await;
+    let saved = directory.path().join("duel.participants.txt");
+    for _ in 0..100 {
+        if saved.exists() {
+            break;
+        }
+        tokio::time::sleep(Duration::from_millis(50)).await;
+    }
+    assert!(saved.exists());
+    drop(app);
+
+    // With a list saved, a new start fetches nothing, and neither does someone reading the pages.
+    let app = serve_from_page(directory.path(), &pages.url);
+    for path in ["/", "/Rankings?game=duel", "/RumbleStats", "/ScoreExplanation"] {
+        let (status, _) = respond(&app, Request::get(path).body(Body::empty()).unwrap()).await;
+        assert_eq!(status, StatusCode::OK, "{path}");
+    }
+    tokio::time::sleep(Duration::from_millis(500)).await;
+    assert_eq!(pages.requests.load(Ordering::SeqCst), 1);
+
+    // A client downloading the list is activity.
+    wait_for_list(&app, "duel", "a.One 1.0").await;
+    wait_for_requests(&pages, 2).await;
 }
 
 #[tokio::test]
