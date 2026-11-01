@@ -61,7 +61,7 @@ DM,flag_usa
 dmh,flag_gbr
 dmsr,flag_prt
 dq,flag_usa
-dragonbyte,flag_man
+dragonbyte,logo_pez
 drm,flag_jpn
 ds,flag_fra
 dsekercioglu,flag_tur
@@ -133,7 +133,7 @@ kvk,flag_fra
 labg,flag_aus
 lancel,flag_fin
 leb,flag_nld
-lessonz,flag_wiki
+lessonz,logo_wiki
 lj,flag_can
 lmk,flag_usa
 logiblocs,flag_gbr
@@ -172,7 +172,7 @@ ouroboros,flag_chn
 pa3k,flag_svk
 pe,flag_gbr
 pedersen,flag_usa
-pez,flag_man
+pez,logo_pez
 pfvicm,flag_usa
 ph,flag_pol
 pla,flag_nld
@@ -196,8 +196,8 @@ rsim,flag_swe
 rus,flag_rus
 rz,flag_che
 sadoner,flag_esp
-sample,flag_wiki
-sampleteam,flag_wiki
+sample,logo_wiki
+sampleteam,logo_wiki
 sch,flag_ita
 seed,flag_jpn
 serenity,flag_rus
@@ -218,7 +218,7 @@ stelo,flag_kor
 step,flag_bra
 strider,flag_swe
 suh,flag_jpn
-supersample,flag_wiki
+supersample,logo_wiki
 synapse,flag_usa
 t3,flag_usa
 tad,flag_aus
@@ -248,7 +248,7 @@ vuen,flag_can
 wcsv,flag_usa
 Welt,flag_chn
 whind,flag_usa
-wiki,flag_wiki
+wiki,logo_wiki
 wilson,flag_chn
 wit,flag_irl
 wompi,flag_deu

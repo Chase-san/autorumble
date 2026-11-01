@@ -429,7 +429,7 @@ async fn logos_are_served_when_valid() {
     let logos = server.directory.path().join("logos");
     fs::write(logos.join("flag_usa.png"), &png).unwrap();
     fs::write(logos.join("bad.png"), b"<svg></svg> not a png at all, just text").unwrap();
-    fs::write(server.directory.path().join("logos.csv"), "a,flag_usa\nb,bad\n").unwrap();
+    fs::write(server.directory.path().join("logos.csv"), "A,Flag_USA\nb,bad\n").unwrap();
 
     server.upload(result("a.One 1.0", 300, "b.Two 2.0", 100, now_ms())).await;
 

@@ -2,7 +2,8 @@
 
 `server.toml` has the server's own settings. `rumbles/` defines the rumbles, with one file for each.
 `logos.csv` says which flag or logo each robot's top-level package uses, with a `package,image` line for each
-and nothing else. The images are in `logos/`, and the server reads this list again every few minutes.
+and nothing else. Names match whatever their case. The images are in `logos/`, and the server reads this list
+again every few minutes.
 
 ## Defining a rumble
 

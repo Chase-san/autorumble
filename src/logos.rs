@@ -2,7 +2,7 @@
 //!
 //! `logos/` holds the images as PNG files, which reach it through reviewed changes. A list says which
 //! image each robot's top-level package uses, with lines like `cs,flag_usa`. So an author can use a
-//! country's flag or their own logo, and only the list decides which.
+//! country's flag or their own logo, and only the list decides which. Names match whatever their case.
 //!
 //! The limits are checked again here so that a bad file can never reach a page.
 
@@ -40,14 +40,19 @@ impl Logos {
 
     /// The bytes of an image, by its name.
     pub fn image(&self, name: &str) -> Option<&Arc<Vec<u8>>> {
-        self.images.get(name)
+        self.images.get(&key(name))
     }
 
     /// The name of the image a robot shows, if it has one.
     pub fn of_robot(&self, robot: &str) -> Option<&str> {
-        let image = self.packages.get(package_of(robot))?;
+        let image = self.packages.get(&key(package_of(robot)))?;
         self.images.contains_key(image).then_some(image.as_str())
     }
+}
+
+/// The form of a package or image name that everything is stored and looked up by.
+fn key(name: &str) -> String {
+    name.to_ascii_lowercase()
 }
 
 /// Checks that the bytes start like a PNG file within the limits, and returns its size.
@@ -92,7 +97,7 @@ fn load_dir(directory: &Path) -> HashMap<String, Arc<Vec<u8>>> {
         });
         match checked {
             Ok(bytes) => {
-                images.insert(name.to_string(), Arc::new(bytes));
+                images.insert(key(name), Arc::new(bytes));
             }
             Err(reason) => eprintln!("logos: ignoring {file}: {reason}"),
         }
@@ -106,7 +111,7 @@ fn parse_list(text: &str) -> HashMap<String, String> {
     for line in text.lines().map(str::trim).filter(|line| !line.is_empty()) {
         match line.split_once(',') {
             Some((package, image)) if is_plain_name(package) && is_plain_name(image) => {
-                packages.insert(package.to_string(), image.to_string());
+                packages.insert(key(package), key(image));
             }
             _ => eprintln!("logos: ignoring a line in the list: {line}"),
         }
@@ -178,6 +183,21 @@ mod tests {
         assert_eq!(logos.of_robot("ghost.One 1"), None, "listed, but the image does not exist");
         assert_eq!(logos.of_robot("own.One 1"), None, "an image name is not a package");
         assert!(logos.image("own").is_some());
+    }
+
+    #[test]
+    fn names_match_whatever_their_case() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::write(dir.path().join("Flag_BRA.png"), png(30, 18)).unwrap();
+        std::fs::write(dir.path().join("logo_wiki.png"), png(30, 18)).unwrap();
+        let list = dir.path().join("list.csv");
+        std::fs::write(&list, "axeBots,flag_bra\nsupersample,LOGO_Wiki\n").unwrap();
+        let logos = Logos::load(dir.path(), Some(&list));
+
+        assert_eq!(logos.of_robot("axeBots.Okami 1.04"), Some("flag_bra"));
+        assert_eq!(logos.of_robot("axebots.Okami 1.04"), Some("flag_bra"));
+        assert_eq!(logos.of_robot("SuperSample.SuperCrazy 1.0"), Some("logo_wiki"));
+        assert!(logos.image("FLAG_bra").is_some());
     }
 
     #[test]

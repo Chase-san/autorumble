@@ -165,9 +165,9 @@ jobs file as described at the top of the script.
 
 [config/logos.csv](config/logos.csv) says which image each robot's top-level package uses, with lines like
 `cs,flag_usa`, and the images are in [logos/](logos/). So an author can have a country's flag or their own logo,
-and changing one is a line in the list. An image is a PNG of at most 64x64 pixels and 32 KB. The server checks
-these limits when it reads the file, and ignores a file that fails. [logos/README.md](logos/README.md) says
-where the flags came from.
+and changing one is a line in the list. Names match whatever their case. Flags are named `flag_*.png` and everything
+else `logo_*.png`. An image is a PNG of at most 64x64 pixels and 32 KB. The server checks these limits when it
+reads the file, and ignores a file that fails. [logos/README.md](logos/README.md) says where the images came from.
 
 ## Clients
 
