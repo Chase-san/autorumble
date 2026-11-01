@@ -2,4 +2,5 @@ title = "OpenRumble"
 field = "800x600"
 rounds = 35
 hide_names = true
+clear_data = true
 participants = { file = "participants/openrumble.txt" }

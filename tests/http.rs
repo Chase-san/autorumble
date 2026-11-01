@@ -81,6 +81,7 @@ fn serve(directory: PathBuf) -> Router {
         listen = "127.0.0.1:0"
         database = "{database}"
         logos = "{logos}"
+        logo_list = "{logo_list}"
         robots = "{robots}"
         standings_seconds = 0
         participants_seconds = 0
@@ -104,6 +105,7 @@ fn serve(directory: PathBuf) -> Router {
         "#,
         database = path("test.db"),
         logos = path("logos"),
+        logo_list = path("logos.csv"),
         robots = path("robots"),
         duel = path("duel.txt"),
         melee = path("melee.txt"),
@@ -181,6 +183,10 @@ async fn rejections_tell_the_stock_client_not_to_resend() {
         result("a.One 1.0", 300, "b.Two 2.0", 100, time).replace("&hidenames=YES", "");
     let reply = server.upload(names_shown).await;
     assert!(reply.contains("HIDENAMES=YES"), "{reply}");
+
+    let data_cleared = result("a.One 1.0", 300, "b.Two 2.0", 100, time) + "&cleardata=YES";
+    let reply = server.upload(data_cleared).await;
+    assert!(reply.contains("CLEARDATA=NOT"), "{reply}");
 
     let reply = server
         .upload(result("a.One 1.0", 1, "b.Two 2.0", 1, time).replace("game=duel", "game=typo"))
@@ -335,7 +341,12 @@ async fn the_pages_render() {
         ("/Rankings?game=duel", "a.One 1.0"),
         ("/Rankings?game=duel&order=-Vote&limit=1", "c.Three 3.0"),
         ("/BotDetails?game=duel&name=a.One%201.0", "b.Two 2.0"),
+        ("/BotDetails?game=duel&name=a.One%201.0", "BattleDetails?game=duel"),
         ("/BotCompare?game=duel&bota=a.One%201.0&botb=b.Two%202.0", "c.Three 3.0"),
+        (
+            "/BattleDetails?game=duel&name=a.One%201.0&opponent=b.Two%202.0",
+            "a.One 1.0 against b.Two 2.0",
+        ),
         ("/RumbleStats", "Tester"),
         ("/ScoreExplanation", "APS"),
         ("/robots.txt", "BotCompare"),
@@ -357,6 +368,47 @@ async fn the_pages_render() {
 }
 
 #[tokio::test]
+async fn a_pairing_shows_each_of_its_battles() {
+    let server = TestServer::start();
+    let time = now_ms();
+    server.upload(result("a.One 1.0", 300, "b.Two 2.0", 100, time)).await;
+    server.upload(result("b.Two 2.0", 300, "a.One 1.0", 100, time + 1)).await;
+    server.upload(result("a.One 1.0", 300, "c.Three 3.0", 100, time + 2)).await;
+
+    // From each robot's side, newest first, with its own share of the two scores.
+    let (status, page) =
+        server.get("/BattleDetails?game=duel&name=a.One%201.0&opponent=b.Two%202.0").await;
+    assert_eq!(status, StatusCode::OK);
+    let aps = |page: &str, value: &str| page.find(&format!(">{value}</td>")).expect(value);
+    assert!(aps(&page, "25.00") < aps(&page, "75.00"), "{page}");
+    assert!(page.contains("class=\"bad\">25.00"), "{page}");
+    assert!(page.contains("class=\"good\">75.00"), "{page}");
+    assert!(page.contains("Tester"), "{page}");
+    assert!(!page.contains("Show all"), "{page}");
+
+    let (_, oldest_first) = server
+        .get("/BattleDetails?game=duel&name=b.Two%202.0&opponent=a.One%201.0&order=-Date")
+        .await;
+    assert!(aps(&oldest_first, "25.00") < aps(&oldest_first, "75.00"), "{oldest_first}");
+
+    // A limit keeps the newest and offers the rest.
+    let (_, limited) =
+        server.get("/BattleDetails?game=duel&name=a.One%201.0&opponent=b.Two%202.0&limit=1").await;
+    assert!(limited.contains(">25.00</td>"), "{limited}");
+    assert!(limited.contains("The newest 1 of 2 battles"), "{limited}");
+    assert!(limited.contains("limit=2"), "{limited}");
+
+    let (status, _) =
+        server.get("/BattleDetails?game=duel&name=b.Two%202.0&opponent=c.Three%203.0").await;
+    assert_eq!(status, StatusCode::NOT_FOUND, "they have not fought");
+    let (status, _) = server.get("/BattleDetails?game=duel&name=a.One%201.0&opponent=nobody").await;
+    assert_eq!(status, StatusCode::NOT_FOUND);
+    let (status, _) =
+        server.get("/BattleDetails?game=melee&name=a.One%201.0&opponent=b.Two%202.0").await;
+    assert_eq!(status, StatusCode::NOT_FOUND, "they have only fought in the other rumble");
+}
+
+#[tokio::test]
 async fn uploader_names_are_escaped() {
     let server = TestServer::start();
     let line = result("a.One 1.0", 300, "b.Two 2.0", 100, now_ms())
@@ -375,25 +427,29 @@ async fn logos_are_served_when_valid() {
     png.extend(16_u32.to_be_bytes());
     png.extend(16_u32.to_be_bytes());
     let logos = server.directory.path().join("logos");
-    fs::write(logos.join("a.png"), &png).unwrap();
-    fs::write(logos.join("b.png"), b"<svg></svg> not a png at all, just text").unwrap();
+    fs::write(logos.join("flag_usa.png"), &png).unwrap();
+    fs::write(logos.join("bad.png"), b"<svg></svg> not a png at all, just text").unwrap();
+    fs::write(server.directory.path().join("logos.csv"), "a,flag_usa\nb,bad\n").unwrap();
 
     server.upload(result("a.One 1.0", 300, "b.Two 2.0", 100, now_ms())).await;
 
-    let request = Request::get("/logos/a.png").body(Body::empty()).unwrap();
+    let request = Request::get("/logos/flag_usa.png").body(Body::empty()).unwrap();
     let response = server.app.clone().oneshot(request).await.unwrap();
     assert_eq!(response.status(), StatusCode::OK);
     assert_eq!(response.headers()[header::CONTENT_TYPE], "image/png");
     assert_eq!(response.headers()[header::X_CONTENT_TYPE_OPTIONS], "nosniff");
 
-    let (status, _) = server.get("/logos/b.png").await;
+    let (status, _) = server.get("/logos/bad.png").await;
     assert_eq!(status, StatusCode::NOT_FOUND);
     let (status, _) = server.get("/logos/..%2Fsecret.png").await;
     assert_eq!(status, StatusCode::NOT_FOUND);
 
     let rankings = server.rankings("duel").await;
-    assert_eq!(rankings[0]["logo"], "/logos/a.png");
+    assert_eq!(rankings[0]["logo"], "/logos/flag_usa.png");
     assert_eq!(rankings[1]["logo"], Value::Null);
+
+    let (_, page) = server.get("/BotDetails?game=duel&name=a.One%201.0").await;
+    assert!(page.contains("src=\"/logos/flag_usa.png\""), "{page}");
 }
 
 #[tokio::test]

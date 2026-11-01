@@ -11,7 +11,7 @@ The values are not URL-encoded, so robot names contain plain spaces.
 ```
 game=autorumble&version=1&client=1.11.2&teams=NOT&melee=NOT&rounds=35&field=800x600&user=Chase
 &time=1793491199000&fname=a.One 1.0&fscore=3000&fbulletd=900&fsurvival=20
-&sname=b.Two 2.0&sscore=1000&sbulletd=300&ssurvival=15&hidenames=YES
+&sname=b.Two 2.0&sscore=1000&sbulletd=300&ssurvival=15&hidenames=YES&cleardata=YES
 ```
 
 (Shown on three lines here. It is one line in the request.)
@@ -30,6 +30,7 @@ game=autorumble&version=1&client=1.11.2&teams=NOT&melee=NOT&rounds=35&field=800x
 | `fbulletd`, `sbulletd` | Their bullet damage |
 | `fsurvival`, `ssurvival` | The rounds they finished first |
 | `hidenames` | `YES` if enemy names were hidden from the robots |
+| `cleardata` | `YES` if the data robots saved was deleted before the battle |
 
 The server rejects a result when the settings do not match the rumble, when a robot is not on the
 participant list, or when the battle is more than a day old.
@@ -81,7 +82,8 @@ but here the server's own list decides, so a client with an old list cannot reti
 | `GET /Rankings?game=NAME` | The rankings. Takes `order`, `limit` and `api=1` for JSON |
 | `GET /BotDetails?game=NAME&name=ROBOT` | One robot's pairings. Takes `order` and `api=1` for JSON |
 | `GET /BotCompare?game=NAME&bota=ROBOT&botb=ROBOT` | Two robots side by side. Takes `order` |
+| `GET /BattleDetails?game=NAME&name=ROBOT&opponent=ROBOT` | Each battle of a pairing, the newest 1000 by default. Takes `order` and `limit` |
 | `GET /RumbleStats` | Uploads by rumble and by uploader |
 | `GET /ScoreExplanation` | What each score means |
-| `GET /logos/PACKAGE.png` | An author's logo |
+| `GET /logos/IMAGE.png` | A flag or logo |
 | `GET /robots/NAME_VERSION.jar` | A robot's jar, for robots not hosted anywhere else |

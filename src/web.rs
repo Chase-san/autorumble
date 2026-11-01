@@ -31,6 +31,7 @@ pub fn router(engine: Arc<Engine>) -> Router {
         .route("/Rankings", get(rankings))
         .route("/BotDetails", get(bot_details))
         .route("/BotCompare", get(bot_compare))
+        .route("/BattleDetails", get(battle_details))
         .route("/RumbleStats", get(rumble_stats))
         .route("/ScoreExplanation", get(|| async { Html(pages::score_explanation()) }))
         .route("/RatingsFile", get(ratings_file))
@@ -133,6 +134,51 @@ async fn bot_compare(
     Ok(Html(pages::bot_compare(rumble, bot_a, bot_b, &order)))
 }
 
+/// Every battle of one pairing, newest first. A pairing can have many battles, so this shows the
+/// newest ones unless `limit` asks for more.
+async fn battle_details(
+    State(engine): State<Arc<Engine>>,
+    Query(params): Params,
+) -> Result<Response, NotFound> {
+    let snapshot = engine.snapshot();
+    let rumble = find_rumble(&snapshot, &params)?;
+    let bot = find_bot(rumble, &params, "name")?;
+    let opponent = find_bot(rumble, &params, "opponent")?;
+    let standings = &rumble.standings;
+    let pairing = standings.pairings[bot]
+        .iter()
+        .find(|pairing| pairing.opponent == opponent)
+        .ok_or(NotFound("These robots have not fought yet."))?;
+    let shown = params.get("limit").and_then(|limit| limit.parse().ok());
+    let battles = engine
+        .battles_between(
+            &rumble.config.name,
+            &standings.bots[bot].name,
+            &standings.bots[opponent].name,
+            shown.unwrap_or(pages::BATTLES_SHOWN),
+        )
+        .await;
+    Ok(match battles {
+        Ok(battles) => {
+            let order = Order::parse(params.get("order"), "Date");
+            Html(pages::battle_details(
+                rumble,
+                bot,
+                pairing,
+                &battles,
+                shown,
+                &snapshot.logos,
+                &order,
+            ))
+            .into_response()
+        }
+        Err(reason) => {
+            eprintln!("web: cannot read battles: {reason}");
+            (StatusCode::INTERNAL_SERVER_ERROR, "The battles cannot be read now.").into_response()
+        }
+    })
+}
+
 async fn rumble_stats(State(engine): State<Arc<Engine>>) -> Html<String> {
     Html(pages::rumble_stats(&engine.snapshot()))
 }
@@ -203,8 +249,8 @@ async fn logo(
     Path(file): Path<String>,
 ) -> Result<Response, NotFound> {
     let snapshot = engine.snapshot();
-    let bytes = file.strip_suffix(".png").and_then(|package| snapshot.logos.get(package));
-    let bytes = bytes.ok_or(NotFound("There is no such logo."))?;
+    let bytes = file.strip_suffix(".png").and_then(|name| snapshot.logos.image(name));
+    let bytes = bytes.ok_or(NotFound("There is no such image."))?;
     let headers = [
         (header::CONTENT_TYPE, "image/png"),
         (header::X_CONTENT_TYPE_OPTIONS, "nosniff"),

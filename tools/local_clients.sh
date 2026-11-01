@@ -6,7 +6,7 @@
 #   tools/local_clients.sh stop                            stop them
 #   tools/local_clients.sh status                          show what is running
 #
-# ROBOCODE_DIR is a Robocode installation whose client supports HIDENAMES. ROBOTS_DIR holds robot
+# ROBOCODE_DIR is a Robocode installation whose client supports HIDENAMES and CLEARDATA. ROBOTS_DIR holds robot
 # jars. Each client gets its own folder under $CLIENTS, because a client writes to its config, robot
 # database and robot data. Set the number of clients per rumble below. Robot jars are hard links, so
 # the folders stay small. A rumble with an empty participant list gets no clients. Jars missing from

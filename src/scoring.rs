@@ -16,6 +16,12 @@ const PRIOR_BATTLES: f64 = 3.0;
 /// The multiplier for a 95% confidence interval.
 const CI_95: f64 = 1.96;
 
+/// A robot's APS in one battle: its share of the two scores, as a percentage.
+pub fn battle_aps(score: i64, opponent_score: i64) -> f64 {
+    let total = score + opponent_score;
+    if total > 0 { 100.0 * score as f64 / total as f64 } else { 50.0 }
+}
+
 /// One battle's numbers for a pairing. `lo` always has the lower id of the two robots.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct BattleScores {
@@ -69,12 +75,7 @@ pub struct Tally {
 impl Tally {
     /// Adds one battle of a rumble with the given number of rounds.
     pub fn add(&mut self, battle: &BattleScores, rounds: u32) {
-        let total_score = battle.lo_score + battle.hi_score;
-        let aps = if total_score > 0 {
-            100.0 * battle.lo_score as f64 / total_score as f64
-        } else {
-            50.0
-        };
+        let aps = battle_aps(battle.lo_score, battle.hi_score);
         let survival = |firsts: i64| 100.0 * firsts as f64 / f64::from(rounds);
         let pair = self.pairs.entry((battle.lo, battle.hi)).or_insert(PairTotals {
             battles: 0,

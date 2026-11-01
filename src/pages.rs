@@ -8,12 +8,24 @@ use std::cmp::Ordering;
 use serde_json::{Value, json};
 
 use crate::engine::{RumbleView, Snapshot};
-use crate::logos::{self, Logos};
-use crate::scoring::{BotScore, PairingView};
+use crate::logos::Logos;
+use crate::scoring::{BotScore, PairingView, battle_aps};
+use crate::store::BattleSide;
 use crate::time::format_ms;
 
 pub const STYLE: &str = include_str!("style.css");
-pub const ROBOTS_TXT: &str = "User-agent: *\nDisallow: /BotCompare\n";
+pub const ROBOTS_TXT: &str = "User-agent: *\nDisallow: /BotCompare\nDisallow: /BattleDetails\n";
+
+/// How many battles of a pairing to show unless the page is asked for more.
+pub const BATTLES_SHOWN: usize = 1000;
+
+/// The limits of a score: below the first it is bad, and above the second it is good. The same
+/// numbers as LiteRumble.
+type Limits = (f64, f64);
+const APS_LIMITS: Limits = (40.0, 60.0);
+const NPP_LIMITS: Limits = (40.0, 70.0);
+const SURVIVAL_LIMITS: Limits = (40.0, 60.0);
+const KNN_PBI_LIMITS: Limits = (-0.1, 0.1);
 
 /// The column to sort by, and the direction.
 pub struct Order {
@@ -87,9 +99,7 @@ fn page(title: &str, body: &str) -> String {
          <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n\
          <title>{title}</title>\n<link rel=\"stylesheet\" href=\"/style.css\">\n</head>\n<body>\n\
          <h1>{title}</h1>\n<nav><a href=\"/\">Home</a> <a href=\"/RumbleStats\">Statistics</a> \
-         <a href=\"/ScoreExplanation\">Score explanation</a></nav>\n{body}\n\
-         <footer>The scores follow <a href=\"https://robowiki.net/wiki/LiteRumble\">LiteRumble</a> \
-         by Skilgannon.</footer>\n</body>\n</html>\n"
+         <a href=\"/ScoreExplanation\">Score explanation</a></nav>\n{body}\n</body>\n</html>\n"
     )
 }
 
@@ -116,21 +126,32 @@ fn sort_header(base: &str, columns: &[&str], order: &Order) -> String {
 }
 
 fn logo_tag(logos: &Logos, name: &str) -> String {
-    let package = logos::package_of(name);
-    if logos.contains_key(package) {
-        format!("<img class=\"logo\" src=\"/logos/{}.png\" alt=\"\">", encode(package))
-    } else {
-        String::new()
+    match logos.of_robot(name) {
+        Some(image) => {
+            format!("<img class=\"logo\" src=\"/logos/{}.png\" alt=\"\">", encode(image))
+        }
+        None => String::new(),
     }
 }
 
 fn logo_path(logos: &Logos, name: &str) -> Value {
-    let package = logos::package_of(name);
-    if logos.contains_key(package) { json!(format!("/logos/{package}.png")) } else { Value::Null }
+    match logos.of_robot(name) {
+        Some(image) => json!(format!("/logos/{image}.png")),
+        None => Value::Null,
+    }
 }
 
 fn details_href(game: &str, name: &str) -> String {
     format!("BotDetails?game={}&amp;name={}", encode(game), encode(name))
+}
+
+fn battles_href(game: &str, name: &str, opponent: &str) -> String {
+    format!(
+        "BattleDetails?game={}&amp;name={}&amp;opponent={}",
+        encode(game),
+        encode(name),
+        encode(opponent)
+    )
 }
 
 fn cell(content: &str) -> String {
@@ -141,8 +162,37 @@ fn number(value: f64) -> String {
     cell(&format!("{value:.2}"))
 }
 
+/// A score's cell, coloured when the score is good or bad.
+fn rated(value: f64, limits: Limits) -> String {
+    let (bad_below, good_above) = limits;
+    let class = if value < bad_below {
+        " class=\"bad\""
+    } else if value > good_above {
+        " class=\"good\""
+    } else {
+        ""
+    };
+    format!("<td{class}>{value:.2}</td>")
+}
+
 fn ci_text(ci: f64) -> String {
     if ci < 0.0 { cell("n/a") } else { cell(&format!("&plusmn;{ci:.2}")) }
+}
+
+/// A table with one row of values under plain headings.
+fn summary_table(headings: &[&str], cells: &[String]) -> String {
+    let headings: String = headings.iter().map(|heading| format!("<th>{heading}</th>")).collect();
+    format!("<table>\n<tr>{headings}</tr>\n<tr>{}</tr>\n</table>\n", cells.concat())
+}
+
+/// A robot's logo and name as a link to its page.
+fn robot_link(logos: &Logos, game: &str, name: &str) -> String {
+    format!(
+        "{} <a href=\"{}\">{}</a>",
+        logo_tag(logos, name),
+        details_href(game, name),
+        escape(name)
+    )
 }
 
 /// The front page: every rumble, by kind.
@@ -302,6 +352,7 @@ pub fn bot_details(rumble: &RumbleView, bot: usize, logos: &Logos, order: &Order
         "Battles",
         "Latest Battle",
         "",
+        "",
     ];
     let base = details_href(game, &score.name);
     let mut rows = String::new();
@@ -315,12 +366,12 @@ pub fn bot_details(rumble: &RumbleView, bot: usize, logos: &Logos, order: &Order
             details_href(game, opponent),
             escape(opponent)
         )));
-        rows.push_str(&number(pair.aps));
+        rows.push_str(&rated(pair.aps, APS_LIMITS));
         rows.push_str(&ci_text(pair.aps_ci));
-        rows.push_str(&number(pair.min_aps));
-        rows.push_str(&number(pair.npp));
-        rows.push_str(&number(pair.survival));
-        rows.push_str(&number(pair.knn_pbi));
+        rows.push_str(&rated(pair.min_aps, APS_LIMITS));
+        rows.push_str(&rated(pair.npp, NPP_LIMITS));
+        rows.push_str(&rated(pair.survival, SURVIVAL_LIMITS));
+        rows.push_str(&rated(pair.knn_pbi, KNN_PBI_LIMITS));
         rows.push_str(&cell(&pair.battles.to_string()));
         rows.push_str(&cell(&format_ms(pair.last_ms)));
         rows.push_str(&cell(&format!(
@@ -329,25 +380,164 @@ pub fn bot_details(rumble: &RumbleView, bot: usize, logos: &Logos, order: &Order
             encode(&score.name),
             encode(opponent)
         )));
+        rows.push_str(&cell(&format!(
+            "<a rel=\"nofollow\" href=\"{}\">details</a>",
+            battles_href(game, &score.name, opponent)
+        )));
         rows.push_str("</tr>\n");
     }
-    let body = format!(
-        "<p>{} {}</p>\n<p><a href=\"Rankings?game={}\">{}</a>: APS {:.2}, PWIN {:.2}, ANPP {:.2}, \
-         Vote {:.2}, Survival {:.2}, {} pairings, {} battles.</p>\n<table>\n{}{rows}</table>\n",
-        logo_tag(logos, &score.name),
-        escape(&score.name),
-        encode(game),
-        escape(&rumble.config.title),
-        score.aps,
-        score.pwin,
-        score.anpp,
-        score.vote,
-        score.survival,
-        score.pairings,
-        score.battles,
-        sort_header(&base, &columns, order),
+    let summary = summary_table(
+        &[
+            "Robot",
+            "Rumble",
+            "Rank",
+            "APS",
+            "APS CI",
+            "PWIN",
+            "ANPP",
+            "Vote",
+            "Survival",
+            "Pairings",
+            "Battles",
+            "Latest Battle",
+        ],
+        &[
+            cell(&format!("{} {}", logo_tag(logos, &score.name), escape(&score.name))),
+            cell(&format!(
+                "<a href=\"Rankings?game={}\">{}</a>",
+                encode(game),
+                escape(&rumble.config.title)
+            )),
+            cell(&format!("{} of {}", bot + 1, rumble.standings.bots.len())),
+            rated(score.aps, APS_LIMITS),
+            ci_text(score.aps_ci),
+            rated(score.pwin, APS_LIMITS),
+            rated(score.anpp, NPP_LIMITS),
+            number(score.vote),
+            rated(score.survival, SURVIVAL_LIMITS),
+            cell(&score.pairings.to_string()),
+            cell(&score.battles.to_string()),
+            cell(&format_ms(score.last_ms)),
+        ],
     );
+    let body = format!("{summary}<table>\n{}{rows}</table>\n", sort_header(&base, &columns, order));
     page(&score.name, &body)
+}
+
+fn sorted_battles<'a>(battles: &'a [BattleSide], order: &Order) -> Vec<&'a BattleSide> {
+    let mut rows: Vec<&BattleSide> = battles.iter().collect();
+    sort_rows(&mut rows, order, |battle, column| {
+        Some(match column {
+            "Date" => Key::Number(battle.time_ms as f64),
+            "APS" => Key::Number(battle_aps(battle.score, battle.opponent_score)),
+            "Survival" => Key::Number(battle.firsts as f64),
+            "Opponent Survival" => Key::Number(battle.opponent_firsts as f64),
+            "Score" => Key::Number(battle.score as f64),
+            "Opponent Score" => Key::Number(battle.opponent_score as f64),
+            "Damage" => Key::Number(battle.bullet_damage as f64),
+            "Opponent Damage" => Key::Number(battle.opponent_bullet_damage as f64),
+            "Uploader" => Key::Text(battle.uploader.clone()),
+            "Client" => Key::Text(battle.client.clone()),
+            _ => return None,
+        })
+    });
+    rows
+}
+
+/// A pairing's scores and its battles, from the side of one robot. `shown` is the limit the page was
+/// asked for, if any, and `battles` holds what that limit allowed.
+pub fn battle_details(
+    rumble: &RumbleView,
+    bot: usize,
+    pairing: &PairingView,
+    battles: &[BattleSide],
+    shown: Option<usize>,
+    logos: &Logos,
+    order: &Order,
+) -> String {
+    let game = &rumble.config.name;
+    let name = &rumble.standings.bots[bot].name;
+    let opponent = &rumble.standings.bots[pairing.opponent].name;
+    let rounds = f64::from(rumble.config.rounds);
+    let survival = |firsts: i64| 100.0 * firsts as f64 / rounds;
+
+    let summary = summary_table(
+        &[
+            "Robot",
+            "Opponent",
+            "APS",
+            "APS CI",
+            "Min APS",
+            "NPP",
+            "Survival",
+            "KNNPBI",
+            "Battles",
+            "Latest Battle",
+        ],
+        &[
+            cell(&robot_link(logos, game, name)),
+            cell(&robot_link(logos, game, opponent)),
+            rated(pairing.aps, APS_LIMITS),
+            ci_text(pairing.aps_ci),
+            rated(pairing.min_aps, APS_LIMITS),
+            rated(pairing.npp, NPP_LIMITS),
+            rated(pairing.survival, SURVIVAL_LIMITS),
+            rated(pairing.knn_pbi, KNN_PBI_LIMITS),
+            cell(&pairing.battles.to_string()),
+            cell(&format_ms(pairing.last_ms)),
+        ],
+    );
+
+    let columns = [
+        "Date",
+        "APS",
+        "Survival",
+        "Opponent Survival",
+        "Score",
+        "Opponent Score",
+        "Damage",
+        "Opponent Damage",
+        "Uploader",
+        "Client",
+    ];
+    let mut base = battles_href(game, name, opponent);
+    if let Some(shown) = shown {
+        base.push_str(&format!("&amp;limit={shown}"));
+    }
+    let mut rows = String::new();
+    for battle in sorted_battles(battles, order) {
+        rows.push_str("<tr>");
+        rows.push_str(&cell(&format_ms(battle.time_ms)));
+        rows.push_str(&rated(battle_aps(battle.score, battle.opponent_score), APS_LIMITS));
+        rows.push_str(&rated(survival(battle.firsts), SURVIVAL_LIMITS));
+        rows.push_str(&number(survival(battle.opponent_firsts)));
+        rows.push_str(&cell(&battle.score.to_string()));
+        rows.push_str(&cell(&battle.opponent_score.to_string()));
+        rows.push_str(&cell(&battle.bullet_damage.to_string()));
+        rows.push_str(&cell(&battle.opponent_bullet_damage.to_string()));
+        rows.push_str(&cell(&escape(&battle.uploader)));
+        rows.push_str(&cell(&escape(&battle.client)));
+        rows.push_str("</tr>\n");
+    }
+
+    let mut notes = String::new();
+    if let Some(bots) = rumble.config.melee_bots {
+        notes.push_str(&format!(
+            "<p>Each row is these two robots' scores in one battle of {bots} robots.</p>\n"
+        ));
+    }
+    if battles.len() < pairing.battles as usize {
+        notes.push_str(&format!(
+            "<p>The newest {} of {} battles. <a rel=\"nofollow\" href=\"{}&amp;limit={}\">Show all</a></p>\n",
+            battles.len(),
+            pairing.battles,
+            battles_href(game, name, opponent),
+            pairing.battles,
+        ));
+    }
+    let body =
+        format!("{summary}{notes}<table>\n{}{rows}</table>\n", sort_header(&base, &columns, order));
+    page(&format!("{name} against {opponent}"), &body)
 }
 
 /// One robot's scores and pairings as JSON.
@@ -529,6 +719,16 @@ mod tests {
         assert_eq!(rows, [3.0, 2.0, 1.0]);
         sort_rows(&mut rows, &Order::parse(None, "-x"), key);
         assert_eq!(rows, [1.0, 2.0, 3.0]);
+    }
+
+    #[test]
+    fn scores_are_coloured_outside_their_limits() {
+        assert!(rated(39.9, APS_LIMITS).contains("class=\"bad\""));
+        assert_eq!(rated(40.0, APS_LIMITS), "<td>40.00</td>");
+        assert_eq!(rated(60.0, APS_LIMITS), "<td>60.00</td>");
+        assert!(rated(60.1, APS_LIMITS).contains("class=\"good\""));
+        assert!(rated(65.0, NPP_LIMITS).find("class").is_none());
+        assert!(rated(-0.2, KNN_PBI_LIMITS).contains("class=\"bad\""));
     }
 
     #[test]

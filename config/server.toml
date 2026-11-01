@@ -8,7 +8,7 @@ listen = "0.0.0.0:8652"
 # The SQLite file holding every battle. Back this file up.
 database = "data/autorumble.db"
 
-# The directory of author logos, see the main README.md.
+# The directory of flag and logo images. logos.csv in this folder says which package uses which.
 logos = "logos"
 
 # A directory of robot jars to serve at /robots/, for robots that are not hosted anywhere else. Leave it
@@ -24,6 +24,6 @@ participants_seconds = 300
 # Battles older than this are rejected.
 max_battle_age_hours = 24
 
-# The Robocode versions allowed to upload. The client must also support HIDENAMES for a rumble that
-# hides names, which the server checks on each result.
+# The Robocode versions allowed to upload. The client must also support HIDENAMES and CLEARDATA for a
+# rumble that needs them, which the server checks on each result.
 allowed_clients = ["1.11.2", "1.11.3"]

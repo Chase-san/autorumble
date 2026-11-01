@@ -99,7 +99,7 @@ The design rests on three decisions:
 | `src/priority.rs` | Which battles to ask clients for |
 | `src/store.rs` | The database |
 | `src/participants.rs` | Reading participant lists |
-| `src/logos.rs` | Author logos |
+| `src/logos.rs` | Flags and logos |
 | `config/` | The server's settings and the rumble definitions |
 | `participants/` | The participant lists and the license record |
 
@@ -159,14 +159,15 @@ tools/name_check_report.py ~/name-check/results.tsv
 ```
 
 A short battle is noisy, so run anything that looks wrong again with more rounds before believing it, using a
-jobs file as described at the top of the script. This only tests fresh robots. A robot that saves data per
-opponent reuses the files for `#0` and `#1` with every opponent, which shows up over a long run instead.
+jobs file as described at the top of the script.
 
-## Logos
+## Flags and logos
 
-Logos replace LiteRumble's country flags. A logo is a PNG of at most 64x64 pixels and 32 KB, named after
-the robot's top-level package, like `logos/claude.png`. It shows for all robots in that package.
-The server checks these limits when it reads the file, and ignores a file that fails.
+[config/logos.csv](config/logos.csv) says which image each robot's top-level package uses, with lines like
+`cs,flag_usa`, and the images are in [logos/](logos/). So an author can have a country's flag or their own logo,
+and changing one is a line in the list. An image is a PNG of at most 64x64 pixels and 32 KB. The server checks
+these limits when it reads the file, and ignores a file that fails. [logos/README.md](logos/README.md) says
+where the flags came from.
 
 ## Clients
 
@@ -178,8 +179,8 @@ Set `USER` and replace `localhost:8652` with the server's address. The launcher 
 sed 's#roborumble/roborumble.txt#roborumble/autorumble.txt#' roborumble.sh > autorumble.sh
 ```
 
-The rumbles need a client that supports `HIDENAMES`, which released versions of Robocode do not have
-yet. `RESULTSBATCHURL` is optional: without it, the client uploads one result at a time.
+The rumbles need a client that supports `HIDENAMES` and `CLEARDATA`, which released versions of Robocode do
+not have yet. `RESULTSBATCHURL` is optional: without it, the client uploads one result at a time.
 
 ## Tests
 

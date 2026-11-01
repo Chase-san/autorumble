@@ -2,6 +2,7 @@
 //!
 //! - `config/server.toml` has the server's own settings.
 //! - `config/rumbles/NAME.toml` defines the rumble called NAME, one file per rumble.
+//! - `config/logos.csv` says which flag or logo each package uses.
 //!
 //! A result is only stored if it matches its rumble's definition here, so a typo in a client's
 //! configuration cannot create a new rumble, and a client with the wrong settings cannot add results
@@ -24,8 +25,12 @@ pub struct Config {
     pub listen: String,
     /// The SQLite file holding every battle.
     pub database: PathBuf,
-    /// The directory of author logos.
+    /// The directory of flag and logo images.
     pub logos: PathBuf,
+    /// The list of which image each package uses. In a configuration directory, this is `logos.csv`
+    /// there unless it is set.
+    #[serde(default)]
+    pub logo_list: Option<PathBuf>,
     /// A directory of robot jars to serve, for robots that are not hosted anywhere else.
     #[serde(default)]
     pub robots: Option<PathBuf>,
@@ -63,6 +68,9 @@ pub struct RumbleConfig {
     /// Whether robots must not see the names of their enemies.
     #[serde(default)]
     pub hide_names: bool,
+    /// Whether the data robots save must be deleted between battles.
+    #[serde(default)]
+    pub clear_data: bool,
     /// Where the participant list comes from.
     pub participants: Source,
 }
@@ -111,6 +119,7 @@ impl Config {
         let server = path.join("server.toml");
         let mut config: Config =
             toml::from_str(&read(&server)?).map_err(|e| format!("{}: {e}", server.display()))?;
+        config.logo_list.get_or_insert_with(|| path.join("logos.csv"));
 
         let directory = path.join("rumbles");
         let entries = std::fs::read_dir(&directory)

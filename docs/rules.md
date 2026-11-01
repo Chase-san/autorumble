@@ -9,6 +9,9 @@ enter, and a reviewer checks them when a robot is added to a list.
   enforces. A robot can only tune against an opponent by working out who it is during the match.
 - **Data limits.** The same as the main rumble: at most 200 KB of data packaged in the jar, and the normal
   200 KB data directory quota.
+- **Saved data lasts one battle.** A robot can save data and read it back between rounds, but the client
+  deletes what robots saved before the next battle. With hidden names, a file saved under `#1` would otherwise
+  be read against a different opponent. The data packaged in a robot's jar is still there for every battle.
 - A robot that only breaks on hidden names can stay in and score what it scores. It is only removed if it
   breaks battles.
 

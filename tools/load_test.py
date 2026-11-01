@@ -18,6 +18,7 @@ server, work, robots, results = pathlib.Path(sys.argv[1]), pathlib.Path(sys.argv
 PORT = 18654
 BASE = f"http://127.0.0.1:{PORT}"
 BATCH = 1000
+PAIRING = "/BattleDetails?game=load&name=load.Robot0001%201.0&opponent=load.Robot0000%201.0"
 
 if work.exists():
     shutil.rmtree(work)
@@ -91,7 +92,8 @@ while sent < results:
         mark = time.time()
         print(f"{sent // 1_000_000:4}M: {rate:7.0f} results/s, memory {memory_mb(process):5.0f} MB, "
               f"database {database_mb():7.0f} MB, rankings page {page_seconds('/Rankings?game=load'):.3f}s, "
-              f"robot page {page_seconds('/BotDetails?game=load&name=load.Robot0001%201.0'):.3f}s", flush=True)
+              f"robot page {page_seconds('/BotDetails?game=load&name=load.Robot0001%201.0'):.3f}s, "
+              f"pairing page {page_seconds(PAIRING):.3f}s, all its battles {page_seconds(PAIRING + '&limit=100000000'):.3f}s", flush=True)
 
 print(f"{robots} robots, {stored} of {sent} results stored", flush=True)
 process.terminate()

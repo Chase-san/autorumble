@@ -8,6 +8,9 @@
 //! clients uploading one result at a time cost about the same as one client uploading a batch.
 //! A result is only added to the scores once its transaction has committed, and the reply is only
 //! sent after that, so a client that sees `OK` knows the result is safe.
+//!
+//! The only thing read outside this thread is the list of a pairing's battles, because the scores do
+//! not keep them. A page reads those through its own read-only connection to the database.
 
 use std::collections::{BTreeMap, HashMap};
 use std::path::{Path, PathBuf};
@@ -19,12 +22,12 @@ use fastrand::Rng;
 use tokio::sync::oneshot;
 
 use crate::config::{Config, RumbleConfig};
-use crate::logos::{self, Logos};
+use crate::logos::Logos;
 use crate::participants::{self, Participant};
 use crate::priority;
 use crate::protocol::{self, Outcome, Upload};
 use crate::scoring::{BattleScores, BotId, Entrant, Standings, Tally};
-use crate::store::{BattleRow, Names, Store};
+use crate::store::{BattleRow, BattleSide, Names, Store};
 use crate::time;
 
 /// How many jobs can wait. When the queue is full, uploads get a retry status.
@@ -90,6 +93,7 @@ struct Job {
 pub struct Engine {
     jobs: SyncSender<Job>,
     snapshot: Arc<RwLock<Arc<Snapshot>>>,
+    database: PathBuf,
     robots: Option<PathBuf>,
 }
 
@@ -97,6 +101,7 @@ impl Engine {
     /// Opens the database, rebuilds the scores from it and starts the thread.
     pub fn start(config: Config) -> Result<Engine, String> {
         let robots = config.robots.clone();
+        let database = config.database.clone();
         let worker = Worker::new(config)?;
         let snapshot = worker.snapshot.clone();
         let (jobs, queue) = sync_channel(QUEUE_LENGTH);
@@ -104,7 +109,7 @@ impl Engine {
             .name("engine".to_string())
             .spawn(move || run_or_exit(worker, queue))
             .map_err(|e| format!("cannot start the engine thread: {e}"))?;
-        Ok(Engine { jobs, snapshot, robots })
+        Ok(Engine { jobs, snapshot, database, robots })
     }
 
     /// Stores results, one per line, and waits until they are safe.
@@ -119,6 +124,24 @@ impl Engine {
             return busy();
         }
         answer.await.unwrap_or_else(|_| busy())
+    }
+
+    /// Reads the newest battles of a pairing from the database, from the side of `bot`.
+    pub async fn battles_between(
+        &self,
+        rumble: &str,
+        bot: &str,
+        opponent: &str,
+        limit: usize,
+    ) -> Result<Vec<BattleSide>, String> {
+        let database = self.database.clone();
+        let (rumble, bot, opponent) = (rumble.to_string(), bot.to_string(), opponent.to_string());
+        tokio::task::spawn_blocking(move || {
+            let store = Store::open_read_only(&database).map_err(|e| e.to_string())?;
+            store.battles_between(&rumble, &bot, &opponent, limit).map_err(|e| e.to_string())
+        })
+        .await
+        .map_err(|e| e.to_string())?
     }
 
     /// The directory of robot jars to serve, if there is one.
@@ -170,6 +193,10 @@ pub fn check_upload(
     if upload.hide_names != rumble.hide_names {
         let setting = if rumble.hide_names { "YES" } else { "NOT" };
         return Err(format!("this rumble needs HIDENAMES={setting}"));
+    }
+    if upload.clear_data != rumble.clear_data {
+        let setting = if rumble.clear_data { "YES" } else { "NOT" };
+        return Err(format!("this rumble needs CLEARDATA={setting}"));
     }
     if upload.time_ms < now_ms - max_age_ms {
         return Err("the battle is too old".to_string());
@@ -296,7 +323,7 @@ impl Worker {
             rumbles,
             bot_ids,
             uploader_ids,
-            logos: Arc::new(Logos::new()),
+            logos: Arc::new(Logos::default()),
             snapshot: Arc::new(RwLock::new(Arc::new(Snapshot::default()))),
             lists_read: Instant::now(),
             standings_computed: Instant::now(),
@@ -460,7 +487,7 @@ impl Worker {
     /// empty, the rumble keeps the list it has, so a bad fetch never retires anyone.
     fn read_lists(&mut self) {
         self.lists_read = Instant::now();
-        self.logos = Arc::new(logos::load_dir(&self.config.logos));
+        self.logos = Arc::new(Logos::load(&self.config.logos, self.config.logo_list.as_deref()));
         for index in 0..self.rumbles.len() {
             let name = self.rumbles[index].config.name.clone();
             let text = match self.rumbles[index].config.participants.fetch() {
@@ -573,6 +600,7 @@ mod tests {
             rounds: 35,
             melee_bots: None,
             hide_names: true,
+            clear_data: false,
             participants: Source::File("unused".into()),
         }
     }
@@ -589,6 +617,7 @@ mod tests {
             teams: false,
             melee: false,
             hide_names: true,
+            clear_data: false,
             rounds: 35,
             field: "800x600".to_string(),
             user: "Tester".to_string(),
@@ -609,7 +638,7 @@ mod tests {
 
     #[test]
     fn the_rumble_settings_must_match() {
-        let changes: [fn(&mut Upload); 7] = [
+        let changes: [fn(&mut Upload); 8] = [
             |u| u.version = "2".to_string(),
             |u| u.client = "1.0".to_string(),
             |u| u.rounds = 10,
@@ -617,6 +646,7 @@ mod tests {
             |u| u.melee = true,
             |u| u.teams = true,
             |u| u.hide_names = false,
+            |u| u.clear_data = true,
         ];
         for change in changes {
             let mut bad = upload();
