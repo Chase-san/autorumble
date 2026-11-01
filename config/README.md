@@ -19,11 +19,37 @@ naming its own configuration file the same, so `rumbles/autorumble.toml` goes wi
 | `melee_bots` | Robots per battle in a melee rumble. Leave it out for 1v1 |
 | `hide_names` | `true` if robots only see their enemies as `#0`, `#1` and so on |
 | `clear_data` | `true` if clients must delete the data robots saved before each battle |
-| `participants` | Where the list comes from, like `{ file = "participants/autorumble.txt" }` |
+| `participants` | Where the list comes from, as below |
 
 To add a rumble, add a file here and restart the server. Its scores start from nothing, and the rumble
 appears on the pages. To change a format, make a new rumble instead of editing a file, because the results
 already stored were played under the old format.
+
+## Where a participant list comes from
+
+A list has one `name version,url` line per robot. It can be a file, or a page on a web server:
+
+```toml
+participants = { file = "participants/openrumble.txt" }
+```
+
+```toml
+participants = { url = "https://robowiki.net/wiki/RoboRumble/Participants?action=raw" }
+```
+
+On a page, only the lines between `<pre>` and `</pre>` count. To use other tags, set `open` and `close`, which can
+be any text. That lets one page hold the lists of several rumbles:
+
+```toml
+participants = { url = "https://example.com/lists", open = "<!-- openrumble -->", close = "<!-- /openrumble -->" }
+```
+
+Every `participants_seconds`, and at most once a minute, the server fetches each page once, however many rumbles use
+it. If a page cannot be fetched, has lost its tags or has no robots, the rumble keeps the list it has. The last list
+fetched is saved next to the database, so restarting does not need the site to be up. Until a rumble's first list
+arrives, clients hold on to their results and send them again later.
+
+Clients always download the list from this server, so they do not need to know where it came from.
 
 ## What the server discards
 

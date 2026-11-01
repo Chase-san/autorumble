@@ -11,10 +11,14 @@
 //!
 //! The only thing read outside this thread is the list of a pairing's battles, because the scores do
 //! not keep them. A page reads those through its own read-only connection to the database.
+//!
+//! Participant lists from web servers are fetched on a thread of their own, which sends each page
+//! here. The last list fetched is saved next to the database, so a restart while the site is down
+//! does not empty the rumble.
 
 use std::collections::{BTreeMap, HashMap};
 use std::path::{Path, PathBuf};
-use std::sync::mpsc::{Receiver, RecvTimeoutError, SyncSender, sync_channel};
+use std::sync::mpsc::{Receiver, RecvTimeoutError, SyncSender, channel, sync_channel};
 use std::sync::{Arc, RwLock};
 use std::time::{Duration, Instant};
 
@@ -266,6 +270,8 @@ struct Worker {
     uploader_ids: HashMap<String, u32>,
     logos: Arc<Logos>,
     snapshot: Arc<RwLock<Arc<Snapshot>>>,
+    /// Pages fetched from web servers, each with its address.
+    pages: Receiver<(String, Result<String, String>)>,
     lists_read: Instant,
     standings_computed: Instant,
     rng: Rng,
@@ -317,6 +323,20 @@ impl Worker {
             .map_err(database_error)?;
         eprintln!("engine: read {count} battles in {:.1?}", started.elapsed());
 
+        // Rumbles sharing a page fetch it once.
+        let mut urls: Vec<String> =
+            config.rumbles.iter().filter_map(|rumble| rumble.participants.url.clone()).collect();
+        urls.sort();
+        urls.dedup();
+        let (page_sender, pages) = channel();
+        if !urls.is_empty() {
+            let seconds = config.participants_seconds;
+            std::thread::Builder::new()
+                .name("participants".to_string())
+                .spawn(move || participants::fetch_pages(&urls, seconds, &page_sender))
+                .map_err(|e| format!("cannot start the thread that fetches lists: {e}"))?;
+        }
+
         let mut worker = Worker {
             config,
             store,
@@ -325,10 +345,12 @@ impl Worker {
             uploader_ids,
             logos: Arc::new(Logos::default()),
             snapshot: Arc::new(RwLock::new(Arc::new(Snapshot::default()))),
+            pages,
             lists_read: Instant::now(),
             standings_computed: Instant::now(),
             rng: Rng::new(),
         };
+        worker.restore_saved_lists();
         worker.read_lists();
         worker.compute_standings();
         worker.publish();
@@ -408,6 +430,11 @@ impl Worker {
         let max_age_ms = self.config.max_battle_age_hours as i64 * 3_600_000;
         check_upload(&upload, &rumble.config, &self.config.allowed_clients, now_ms, max_age_ms)
             .map_err(Outcome::Rejected)?;
+        if rumble.config.participants.url.is_some() && rumble.participants.is_empty() {
+            return Err(Outcome::Retry(
+                "the participant list has not been fetched yet".to_string(),
+            ));
+        }
 
         let listed_id = |name: &str| {
             rumble.ids.get(name).copied().ok_or_else(|| {
@@ -470,7 +497,7 @@ impl Worker {
 
     /// Does whatever the timers say is due.
     fn maintain(&mut self) {
-        let mut changed = false;
+        let mut changed = self.use_fetched_pages();
         if self.lists_read.elapsed().as_secs() >= self.config.participants_seconds {
             self.read_lists();
             changed = true;
@@ -483,33 +510,83 @@ impl Worker {
         }
     }
 
-    /// Reads the participant lists and logos again. When a list cannot be read, or is suddenly
-    /// empty, the rumble keeps the list it has, so a bad fetch never retires anyone.
+    /// Reads the lists from files and the logos again.
     fn read_lists(&mut self) {
         self.lists_read = Instant::now();
         self.logos = Arc::new(Logos::load(&self.config.logos, self.config.logo_list.as_deref()));
         for index in 0..self.rumbles.len() {
-            let name = self.rumbles[index].config.name.clone();
-            let text = match self.rumbles[index].config.participants.fetch() {
-                Ok(text) => text,
-                Err(reason) => {
-                    eprintln!("engine: keeping the current list of {name}: {reason}");
-                    continue;
+            if let Some(text) = self.rumbles[index].config.participants.read_file() {
+                self.update_list(index, text);
+            }
+        }
+    }
+
+    /// Uses the pages that have arrived, and returns whether any list changed.
+    fn use_fetched_pages(&mut self) -> bool {
+        let mut changed = false;
+        let pages: Vec<_> = self.pages.try_iter().collect();
+        for (url, page) in pages {
+            for index in 0..self.rumbles.len() {
+                if self.rumbles[index].config.participants.url.as_ref() == Some(&url) {
+                    changed |= self.update_list(index, page.clone());
                 }
-            };
-            let list = participants::parse_list(&text);
-            if list.participants == *self.rumbles[index].participants {
+            }
+        }
+        changed
+    }
+
+    /// Takes in the latest text of a rumble's list, and returns whether the list changed. When it
+    /// cannot be read, or has no robots, the rumble keeps the list it has, so a bad fetch never
+    /// retires anyone.
+    fn update_list(&mut self, index: usize, text: Result<String, String>) -> bool {
+        let name = self.rumbles[index].config.name.clone();
+        let list = text.and_then(|text| self.rumbles[index].config.participants.parse(&text));
+        let list = match list {
+            Ok(list) => list,
+            Err(reason) => {
+                eprintln!("engine: keeping the current list of {name}: {reason}");
+                return false;
+            }
+        };
+        if list.participants == *self.rumbles[index].participants {
+            return false;
+        }
+        for line in &list.invalid {
+            eprintln!("engine: ignoring a line in the list of {name}: {line}");
+        }
+        if list.participants.is_empty() {
+            eprintln!("engine: keeping the current list of {name}: the new one is empty");
+            return false;
+        }
+        if let Err(e) = self.set_participants(index, list.participants) {
+            eprintln!("engine: keeping the current list of {name}: {e}");
+            return false;
+        }
+        if self.rumbles[index].config.participants.url.is_some() {
+            let text = participants::to_plain_text(&self.rumbles[index].participants);
+            if let Err(e) = std::fs::write(self.saved_list_path(index), text) {
+                eprintln!("engine: cannot save the list of {name}: {e}");
+            }
+        }
+        true
+    }
+
+    /// Where the last list fetched for a rumble is saved.
+    fn saved_list_path(&self, index: usize) -> PathBuf {
+        let file = format!("{}.participants.txt", self.rumbles[index].config.name);
+        self.config.database.with_file_name(file)
+    }
+
+    /// Starts each rumble whose list comes from a web server with the list it last fetched.
+    fn restore_saved_lists(&mut self) {
+        for index in 0..self.rumbles.len() {
+            if self.rumbles[index].config.participants.url.is_none() {
                 continue;
             }
-            for line in &list.invalid {
-                eprintln!("engine: ignoring a line in the list of {name}: {line}");
-            }
-            if list.participants.is_empty() {
-                eprintln!("engine: keeping the current list of {name}: the new one is empty");
-                continue;
-            }
+            let Ok(text) = std::fs::read_to_string(self.saved_list_path(index)) else { continue };
+            let list = participants::parse_lines(text.lines());
             if let Err(e) = self.set_participants(index, list.participants) {
-                eprintln!("engine: keeping the current list of {name}: {e}");
+                eprintln!("engine: cannot restore the list of a rumble: {e}");
             }
         }
     }
@@ -601,7 +678,7 @@ mod tests {
             melee_bots: None,
             hide_names: true,
             clear_data: false,
-            participants: Source::File("unused".into()),
+            participants: Source { file: Some("unused".into()), ..Source::default() },
         }
     }
 

@@ -170,6 +170,7 @@ impl Config {
             if rumble.melee_bots.is_some_and(|bots| bots < 3) {
                 return Err(format!("melee rumble {name} needs at least 3 robots per battle"));
             }
+            rumble.participants.check().map_err(|e| format!("rumble {name}: {e}"))?;
         }
         Ok(())
     }
@@ -268,6 +269,33 @@ mod tests {
         assert!(Config::parse(&single_file("Has Space")).is_err());
         let bad_field = single_file("one").replace("800x600", "800");
         assert!(Config::parse(&bad_field).is_err());
+    }
+
+    #[test]
+    fn a_list_can_come_from_a_server_with_its_own_tags() {
+        let from_server = single_file("one").replace(
+            r#"{ file = "a.txt" }"#,
+            r#"{ url = "https://example.com/list", open = "<!-- one -->", close = "<!-- /one -->" }"#,
+        );
+        let config = Config::parse(&from_server).unwrap();
+        let source = &config.rumbles[0].participants;
+        assert_eq!(source.url.as_deref(), Some("https://example.com/list"));
+        assert_eq!(source.open.as_deref(), Some("<!-- one -->"));
+        assert_eq!(source.close.as_deref(), Some("<!-- /one -->"));
+    }
+
+    #[test]
+    fn rejects_a_bad_list_source() {
+        for bad in [
+            r#"{ }"#,
+            r#"{ file = "a.txt", url = "https://example.com" }"#,
+            r#"{ url = "example.com" }"#,
+            r#"{ file = "a.txt", open = "<a>" }"#,
+            r#"{ file = "a.txt", opne = "<a>", close = "</a>" }"#,
+        ] {
+            let text = single_file("one").replace(r#"{ file = "a.txt" }"#, bad);
+            assert!(Config::parse(&text).is_err(), "{bad}");
+        }
     }
 
     #[test]

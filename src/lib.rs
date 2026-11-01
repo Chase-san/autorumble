@@ -1,8 +1,7 @@
 //! AutoRumble is a small rumble server for Robocode.
 //!
 //! Clients run battles and upload the results. The server stores every result, works out the
-//! scores and serves the rankings. See `README.md` for an overview and how the modules fit
-//! together.
+//! scores and serves the rankings. See `docs/design.md` for how the modules fit together.
 
 pub mod config;
 pub mod engine;

@@ -2,8 +2,8 @@
 # Runs RoboRumble clients on this machine, to fill the rumbles of a server running here.
 #
 #   tools/local_clients.sh setup ROBOCODE_DIR ROBOTS_DIR   make the client folders
-#   tools/local_clients.sh start [HOURS]                   run them in the background, 3 hours by default
-#   tools/local_clients.sh stop                            stop them
+#   tools/local_clients.sh start [HOURS] [RUMBLE]          run them in the background, 3 hours by default
+#   tools/local_clients.sh stop [RUMBLE]                   stop them
 #   tools/local_clients.sh status                          show what is running
 #
 # ROBOCODE_DIR is a Robocode installation whose client supports HIDENAMES and CLEARDATA. ROBOTS_DIR holds robot
@@ -78,13 +78,14 @@ running() {  # prints the pid file of each client still running
 }
 
 start() {
-  local hours="${1:-3}" deadline client rumble
+  local hours="${1:-3}" only="${2:-}" deadline client rumble
   deadline=$(( $(date +%s) + hours * 3600 ))
   for client in "$CLIENTS"/*-[0-9]*/; do
     client="${client%/}"
     [ -e "$client/client.pid" ] && kill -0 "$(cat "$client/client.pid")" 2>/dev/null && continue
     rumble="$(basename "$client")"
     rumble="${rumble%-*}"
+    [ -z "$only" ] || [ "$rumble" = "$only" ] || continue
     (setsid nohup bash "${BASH_SOURCE[0]}" _loop "$client" "$rumble" "$deadline" < /dev/null > /dev/null 2>&1 &)
     sleep 1  # so their battles and uploads do not all line up
   done
@@ -92,8 +93,10 @@ start() {
 }
 
 stop() {
-  local pidfile
+  local only="${1:-}" pidfile client
   for pidfile in $(running); do
+    client="$(basename "$(dirname "$pidfile")")"
+    [ -z "$only" ] || [ "${client%-*}" = "$only" ] || continue
     kill -- "-$(cat "$pidfile")" 2>/dev/null
     rm -f "$pidfile"
   done
@@ -106,8 +109,8 @@ status() {
 
 case "${1:-}" in
   setup) setup "$2" "$3" ;;
-  start) start "${2:-3}" ;;
-  stop) stop ;;
+  start) start "${2:-3}" "${3:-}" ;;
+  stop) stop "${2:-}" ;;
   status) status ;;
   _loop) loop "$2" "$3" "$4" ;;
   *) sed -n '2,7p' "${BASH_SOURCE[0]}"; exit 2 ;;

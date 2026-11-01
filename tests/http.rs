@@ -1,8 +1,12 @@
 //! Runs the whole server, apart from the network, through its HTTP routes.
 
 use std::fs;
-use std::path::PathBuf;
-use std::sync::Arc;
+use std::io::{Read, Write};
+use std::net::TcpListener;
+use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::{Arc, Mutex};
+use std::time::Duration;
 
 use autorumble::config::Config;
 use autorumble::engine::Engine;
@@ -450,6 +454,162 @@ async fn logos_are_served_when_valid() {
 
     let (_, page) = server.get("/BotDetails?game=duel&name=a.One%201.0").await;
     assert!(page.contains("src=\"/logos/flag_usa.png\""), "{page}");
+}
+
+/// A web server that answers every request with one page, or with an error when it has none.
+struct PageServer {
+    url: String,
+    page: Arc<Mutex<Option<String>>>,
+    requests: Arc<AtomicUsize>,
+}
+
+impl PageServer {
+    fn start(page: Option<&str>) -> PageServer {
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let url = format!("http://{}/list", listener.local_addr().unwrap());
+        let page = Arc::new(Mutex::new(page.map(str::to_string)));
+        let requests = Arc::new(AtomicUsize::new(0));
+        let (shared_page, count) = (page.clone(), requests.clone());
+        std::thread::spawn(move || {
+            for connection in listener.incoming() {
+                let mut connection = connection.unwrap();
+                let _ = connection.read(&mut [0; 4096]);
+                count.fetch_add(1, Ordering::SeqCst);
+                let reply = match shared_page.lock().unwrap().as_ref() {
+                    Some(body) => format!(
+                        "HTTP/1.1 200 OK\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",
+                        body.len()
+                    ),
+                    None => "HTTP/1.1 500 Oops\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
+                        .to_string(),
+                };
+                let _ = connection.write_all(reply.as_bytes());
+            }
+        });
+        PageServer { url, page, requests }
+    }
+}
+
+/// Two rumbles reading one page, each under its own tags.
+fn serve_from_page(directory: &Path, url: &str) -> Router {
+    let config = Config::parse(&format!(
+        r#"
+        listen = "127.0.0.1:0"
+        database = "{database}"
+        logos = "{logos}"
+        standings_seconds = 0
+        allowed_clients = ["1.11.2"]
+
+        [[rumble]]
+        name = "duel"
+        title = "Duel"
+        field = "800x600"
+        rounds = 35
+        hide_names = true
+        participants = {{ url = "{url}", open = "<!-- duel -->", close = "<!-- /duel -->" }}
+
+        [[rumble]]
+        name = "other"
+        title = "Other"
+        field = "800x600"
+        rounds = 35
+        participants = {{ url = "{url}", open = "<!-- other -->", close = "<!-- /other -->" }}
+        "#,
+        database = directory.join("test.db").display(),
+        logos = directory.join("logos").display(),
+    ))
+    .unwrap();
+    web::router(Arc::new(Engine::start(config).unwrap()))
+}
+
+const PAGE: &str = "\
+Some words, with a comma
+<!-- duel -->
+a.One 1.0,http://example.com/a.jar
+b.Two 2.0,http://example.com/b.jar
+<!-- /duel -->
+<!-- other -->
+c.Three 3.0,http://example.com/c.jar
+<!-- /other -->
+";
+
+/// Asks for a rumble's list until it has this text, or gives up after a few seconds.
+async fn wait_for_list(app: &Router, game: &str, expected: &str) -> String {
+    let mut list = String::new();
+    for _ in 0..100 {
+        let request = Request::get(format!("/Participants?game={game}")).body(Body::empty());
+        list = respond(app, request.unwrap()).await.1;
+        if list.contains(expected) {
+            break;
+        }
+        tokio::time::sleep(Duration::from_millis(50)).await;
+    }
+    list
+}
+
+async fn upload_to(app: &Router, line: String) -> String {
+    respond(app, Request::post("/UploadedResults").body(Body::from(line)).unwrap()).await.1
+}
+
+#[tokio::test]
+async fn lists_come_from_a_web_page_under_their_own_tags() {
+    let directory = tempfile::tempdir().unwrap();
+    let pages = PageServer::start(Some(PAGE));
+    let app = serve_from_page(directory.path(), &pages.url);
+
+    let duel = wait_for_list(&app, "duel", "b.Two 2.0").await;
+    assert!(duel.contains("a.One 1.0,http://example.com/a.jar"), "{duel}");
+    assert!(!duel.contains("c.Three"), "{duel}");
+    assert!(!duel.contains("Some words"), "{duel}");
+    let other = wait_for_list(&app, "other", "c.Three 3.0").await;
+    assert!(!other.contains("a.One"), "{other}");
+    assert_eq!(pages.requests.load(Ordering::SeqCst), 1, "the rumbles share one fetch");
+
+    let reply = upload_to(&app, result("a.One 1.0", 300, "b.Two 2.0", 100, now_ms())).await;
+    assert!(reply.contains("OK"), "{reply}");
+    assert!(!reply.contains("ERROR"), "{reply}");
+}
+
+#[tokio::test]
+async fn results_wait_until_the_first_list_has_been_fetched() {
+    let directory = tempfile::tempdir().unwrap();
+    let pages = PageServer::start(None);
+    let app = serve_from_page(directory.path(), &pages.url);
+
+    let reply = upload_to(&app, result("a.One 1.0", 300, "b.Two 2.0", 100, now_ms())).await;
+    assert!(reply.contains("RETRY"), "{reply}");
+    assert!(!reply.contains("OK"), "the client must keep this result: {reply}");
+}
+
+#[tokio::test]
+async fn a_fetched_list_survives_a_restart_while_the_site_is_down() {
+    let directory = tempfile::tempdir().unwrap();
+    let pages = PageServer::start(Some(PAGE));
+    let app = serve_from_page(directory.path(), &pages.url);
+    wait_for_list(&app, "duel", "b.Two 2.0").await;
+    drop(app);
+
+    *pages.page.lock().unwrap() = None;
+    let app = serve_from_page(directory.path(), &pages.url);
+    let reply = upload_to(&app, result("a.One 1.0", 300, "b.Two 2.0", 100, now_ms())).await;
+    assert!(reply.contains("OK"), "{reply}");
+    assert!(!reply.contains("ERROR"), "{reply}");
+}
+
+#[tokio::test]
+async fn a_page_that_lost_its_tags_changes_nothing() {
+    let directory = tempfile::tempdir().unwrap();
+    let pages = PageServer::start(Some(PAGE));
+    let app = serve_from_page(directory.path(), &pages.url);
+    wait_for_list(&app, "duel", "b.Two 2.0").await;
+    drop(app);
+
+    *pages.page.lock().unwrap() = Some("x.Vandal 1.0,http://example.com/x.jar\n".to_string());
+    let app = serve_from_page(directory.path(), &pages.url);
+    tokio::time::sleep(Duration::from_millis(1500)).await;
+    let list = wait_for_list(&app, "duel", "a.One 1.0").await;
+    assert!(list.contains("b.Two 2.0"), "{list}");
+    assert!(!list.contains("x.Vandal"), "{list}");
 }
 
 #[tokio::test]
